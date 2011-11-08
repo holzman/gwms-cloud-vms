@@ -1,0 +1,33 @@
+errors.py
+    TimeoutError
+    PilotError
+
+simple_logging.py
+
+contextualize.py
+    retrieve_user_data
+    extract_user_data
+
+pilot_launcher.py
+    Config
+    define_cmd
+    set_config
+    set_pilot_env
+    shutdown_ami
+    retrieve_glidein_startup
+
+
+version_info.py - written by RPM
+    SERVICE_VERSION
+    SERVICE_RELEASE
+
+glideinwms_tarfile.py
+
+vm_utils.py
+    daemonize
+    launch_process
+    shutdown
+    drop_privs
+    mkdir_p
+    chown
+    email_logs

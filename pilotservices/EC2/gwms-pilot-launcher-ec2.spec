@@ -1,5 +1,11 @@
 # Define custom macros
 %define is_fedora %(test -e /etc/fedora-release && echo 1 || echo 0)
+# From http://fedoraproject.org/wiki/Packaging:Python
+# Define python_sitelib
+%if ! (0%{?fedora} > 12 || 0%{?rhel} > 5)
+%{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
+%{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
+%endif
 
 Name:               gwms-pilot-launcher-ec2
 Version:            0.0.1
@@ -17,12 +23,14 @@ BuildArchitectures: noarch
 
 Source0:        glideinwms-pilot
 Source1:        pilot-launcher
+Source2:        glideinwms-tarfile.py
 
 Requires(post): /sbin/service
 Requires(post): /usr/sbin/useradd
 Requires(post): /sbin/chkconfig
 Requires(post): /usr/sbin/groupadd
 Requires(post): /usr/sbin/useradd
+Requires(post): /bin/chmod
 
 %description
 glideinWMS pilot launcher service
@@ -48,11 +56,14 @@ rm -rf $RPM_BUILD_ROOT
 
 # Install the init.d
 install -d  $RPM_BUILD_ROOT/%{_initrddir}
-install -m 0755 %{SOURCE0} $RPM_BUILD_ROOT/%{_initrddir}/glideinwms-pilot
+install -m 0755 %{Source0} $RPM_BUILD_ROOT/%{_initrddir}/glideinwms-pilot
 
 # install the executables
 install -d $RPM_BUILD_ROOT%{_sbindir}
-install -m 0500 %{SOURCE1} $RPM_BUILD_ROOT%{_sbindir}/pilot-launcher
+install -m 0500 %{Source1} $RPM_BUILD_ROOT%{_sbindir}/pilot-launcher
+
+# install the glideinwms_tarfile.py
+cp -rp %{Source2} $RPM_BUILD_ROOT%{python_sitelib}
 
 %post
 # $1 = 1 - Installation
@@ -64,6 +75,11 @@ install -m 0500 %{SOURCE1} $RPM_BUILD_ROOT%{_sbindir}/pilot-launcher
 
 sed -i "s/SERVICE_VERSION = 0/SERVICE_VERSION = %{version}/" %{_sbindir}/pilot-launcher
 sed -i "s/SERVICE_RELEASE = 0/SERVICE_RELEASE = %{release}/" %{_sbindir}/pilot-launcher
+
+# Add glidein_pilot to sudoers so that it can shutdown the VM without a password 
+/bin/chmod +w /etc/sudoers
+echo glidein_pilot ALL= NOPASSWD: ALL >> /etc/sudoers
+/bin/chmod -w /etc/sudoers
 
 %preun
 # $1 = 0 - Action is uninstall

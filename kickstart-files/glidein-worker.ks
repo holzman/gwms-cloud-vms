@@ -1,9 +1,5 @@
-#version=RHEL5
-# System authorization information
-auth --useshadow --enablemd5
-
-# Firewall configuration
-firewall --disabled
+# bg_os_name: centos
+# bg_os_version: 5
 
 # Use network installation
 url --url="http://newman.ultralight.org/os/centos/5/x86_64"
@@ -11,9 +7,6 @@ repo --name="Updates" --baseurl=http://newman.ultralight.org/mirror/centos/5/upd
 repo --name="CernVM" --baseurl=http://cvmrepo.web.cern.ch/cvmrepo/yum/cvmfs/x86_64/ --cost=99
 repo --name="EPEL" --baseurl=http://download.fedora.redhat.com/pub/epel/5/x86_64/ --cost=99
 repo --name="OSG" --baseurl=http://repo.grid.iu.edu/osg-testing/x86_64/ --cost=98
-
-
-
 
 # System keyboard
 keyboard us
@@ -57,7 +50,6 @@ bootloader --location=mbr
 #part /boot  --fstype="ext2" --ondisk=hda --size=200
 part /  --fstype="ext2" --ondisk=hda --size=10240
 
-
 %packages --nobase
 # According to http://lists.centos.org/pipermail/centos/2009-April/075627.html
 # these are the bare minimum rpms for a functional install
@@ -99,7 +91,6 @@ info
 initscripts
 iproute
 iputils
-#kernel-uek  # pre- script fails for now.  Not really necessary.
 keyutils-libs
 kpartx
 krb5-libs
@@ -167,14 +158,7 @@ cvmfs-init-scripts
 osg-ca-certs
 osg-wn-client
 fetch-crl
-tar
 
-# glideinWMS
-glideinwms-pilot-launcher-ec2
-
-#
-# Packages to Remove
-#
 # Packages in the Core group tagged as 'default' can be configured to not
 # be installed by subtracting them in the %packages section.
 -audit-libs-python
@@ -187,7 +171,6 @@ glideinwms-pilot-launcher-ec2
 -gpm
 -hdparm
 -kbd
--kudzu
 -libhugetlbfs
 -libselinux-python
 -libsemanage
@@ -205,19 +188,19 @@ glideinwms-pilot-launcher-ec2
 -udftools
 -vim-enhanced
 
-# Things it would be nice to lose
--redhat-logos
--redhat-release-notes
-
-%end
-
 %post --logfile /root/anaconda-post.log
+# Have the VM report to the console so we can debug with virsh
+echo "starting serial port configuration"
+sed -i /boot/grub/grub.conf -e '/kernel/s|$| console=ttyS0|'
+sed -i /boot/grub/grub.conf -e '/hiddenmenu/s|$|\nserial –speed=115200 –unit=0 –word=8 –parity=no –stop=1\nterminal –timeout=10 serial|'
+echo "S0:12345:respawn:/sbin/agetty ttyS0 115200" >> /etc/inittab
+echo "ttyS0" >> /etc/securetty
+echo "finished serial port configuration"
 
 # Nimbus needs to have /root/.ssh created so that the create-keypair call will succeed - shouldn't hurt on an Amazon EC2 image
 mkdir -p /root/.ssh
 
 # Configure CernVM FS
-mkdir -p /etc/cvmfs/local.d
 cat > /etc/cvmfs/default.local << EOF
 CVMFS_REPOSITORIES=cms.cern.ch
 CVMFS_HTTP_PROXY="http://red-squid1.unl.edu:3128|http://red-squid2.unl.edu:3128;DIRECT"
@@ -230,13 +213,15 @@ sed -i '/automount/s|nisplus||' /etc/nsswitch.conf
 chown root:fuse /bin/fusermount
 chmod 4750 /bin/fusermount
 
-# add to /etc/init.d/cvmfs after the install has been completed
-sed -i "s,. /etc/init.d/functions\n\nRETVAL=0\n,. /etc/init.d/functions\n\nRETVAL=0\n\ncd /mnt\nmkdir cvmfs2\ncd /var/cache/\nln -s /mnt/cvmfs2 cvmfs2\n\n,g" /etc/init.d/cvmfs
-
 # Services we want at boot
+/sbin/chkconfig fetch-crl-boot on
 /sbin/chkconfig fetch-crl-cron on
 /sbin/chkconfig --level 345 cvmfs on
 /sbin/chkconfig --level 345 autofs on
+
+# CD-ROM for contextualization
+mkdir -p /mnt/cdrom
+echo "/dev/hdb /mnt/cdrom iso9660 ro 0 0" >> /etc/fstab
 
 # CMS configuration files
 mkdir -p /etc/cms/SITECONF/local/{JobConfig,PhEDEx}
