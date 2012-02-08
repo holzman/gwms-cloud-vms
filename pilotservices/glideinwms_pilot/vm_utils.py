@@ -55,11 +55,14 @@ def daemonize(pidfile):
                 fp.write(str(os.getpid()))
                 fp.close()
             except:
+                # pylint: disable=W0702
                 pass
         else:
-            os._exit(0)    # Exit parent (the first child) of the second child.
+            # Exit parent (the first child) of the second child.
+            os._exit(0) # pylint: disable=W0212
     else:
-        os._exit(0)       # Exit parent of the first child.
+        # Exit parent of the first child.
+        os._exit(0) # pylint: disable=W0212
 
 #### END DAEMON CODE ####
 

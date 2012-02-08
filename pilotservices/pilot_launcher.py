@@ -6,7 +6,6 @@ import urllib
 import glideinwms_pilot.version_info
 import glideinwms_pilot.vm_utils
 
-from glideinwms_pilot.glideinwms_email import send_logs
 from glideinwms_pilot.errors import PilotError
 from glideinwms_pilot.errors import TimeoutError
 from glideinwms_pilot.simple_logging import Logger
@@ -35,6 +34,7 @@ class PilotEnvironment(dict):
             for key, value in self.items():
                 environment += "export %s=%s; " % (key, value)
         except:
+            # pylint: disable=W0702
             pass
         return environment
 
@@ -99,8 +99,6 @@ def shutdown_ami(config):
     if disable_shutdown:
         config.log.logit("Shutdown has been disabled")
     else:
-        if config.email_logs:
-            send_logs(config)
         glideinwms_pilot.vm_utils.shutdown_vm()
 
 def define_cmd(config):
@@ -120,7 +118,7 @@ def retrieve_glidein_startup(config):
     except Exception, ex:
         raise PilotError("Error retrieving glidein_startup.sh: %s\n" % str(ex))
 
-def handler_max_lifetime(signum, frame):
+def handler_max_lifetime(signum, frame): # pylint: disable=W0613
     raise TimeoutError("Max lifetime has been exceeded, shutting down...")
 
 def main():
