@@ -3,6 +3,7 @@ import popen2
 import select
 import errno
 import pwd
+import socket
 
 from errors import PilotError
 
@@ -104,12 +105,12 @@ def launch_pilot(command, fdout, fderr):
     except Exception, ex:
         raise PilotError("Unexpected error encountered while running command [%s]: %s\n" % (command, str(ex)))
 
-def drop_privs(self, username):
+def drop_privs(username):
     # check if we are root.  If we are, drop privileges
     start_uid = os.getuid()
     if start_uid == 0:
         # NOTE:  Must set gid first or you will get an "Operation not permitted" error
-        pwd_tuple = pwd.getpwnam(self.config.glidein_user)
+        pwd_tuple = pwd.getpwnam(username)
         pw_uid = pwd_tuple[2]
         pw_gid = pwd_tuple[3]
 
@@ -133,3 +134,10 @@ def chown(user_group, full_path):
     rtn = os.system("chown -R %s %s" % (user_group, full_path))
     if rtn != 0:
         raise PilotError("Failed to change ownership of file.  Return Code: %s\n" % str(rtn))
+
+def get_host():
+    hostname = socket.gethostname()
+    ip_addr = socket.gethostbyname(hostname)
+    fqdn = socket.getfqdn()
+    
+    return (hostname, ip_addr, fqdn)

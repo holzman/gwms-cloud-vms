@@ -1,2 +1,15 @@
 Code to kickstart and launch pilots for virtual machines on the cloud, 
 as well as kickstart and configuration files for the VMs themselves.
+
+
+The VM will expect one of the following data formats in the user data:
+
+For EC2:
+    [Base64 encoded blob]####[additional arguments]
+
+    OR
+
+    [ini file]
+
+"####" was picked because it will never appear in the base64 encoded string and
+we will make it a rule that it won't appear in the ini file.

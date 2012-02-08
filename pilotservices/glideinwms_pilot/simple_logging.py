@@ -30,3 +30,6 @@ class Logger(object):
 
     def get_logfile(self):
         return "%s/pilot_launcher.log" % self.log_dir
+
+    def get_logfile_fd(self):
+        return self.log
