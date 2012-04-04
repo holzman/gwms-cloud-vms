@@ -1,6 +1,7 @@
 import urllib
 import base64
 import tempfile
+import subprocess
 import ConfigParser
 import glideinwms_tarfile
 
@@ -17,19 +18,27 @@ def smart_bool(s):
 def retrieve_user_data(config):
     if config.contextualization_type.upper() == "EC2":
         return ec2_retrieve_user_data(config)
+    elif config.contextualization_type.upper() == "FERMI-ONE":
+        return fermi_one_retrieve_user_data(config)
 
 def ec2_retrieve_user_data(config):
     try:
         config.userdata_file, _ = urllib.urlretrieve(config.ec2_url, config.userdata_file)
     except Exception, ex:
-        raise PilotError("Error retrieving User Data: %s\n" % str(ex))
+        raise PilotError("Error retrieving User Data(context type: EC2): %s\n" % str(ex))
 
+def fermi_one_retrieve_user_data(config):
+    try:
+        # Mount cdrom drive... OpenNebula contextualization unmounts it
+        mount_cmd = ["mount", "-t", "iso9660", "/dev/hdc", "/mnt"]
+        subprocess.call(mount_cmd)
+         
+        # copy the OpenNebula userdata file
+        vm_utils.cp(config.one_user_data_file, config.userdata_file)
+    except Exception, ex:
+        raise PilotError("Error retrieving User Data (context type: FERMI-ONE): %s\n" % str(ex))
 
 def extract_user_data(config):
-    if config.contextualization_type.upper() == "EC2":
-        return ec2_extract_user_data(config)
-
-def ec2_extract_user_data(config):
     delimiter = "####"
     # need to add max lifetime
     # need to add alternate formats
@@ -76,8 +85,6 @@ def ec2_extract_user_data(config):
                 config.home_dir = cp.get("vm_properties", "home_dir")
             if cp.has_option("vm_properties", "max_lifetime"):
                 config.max_lifetime = cp.get("vm_properties", "max_lifetime")
-            if cp.has_option("vm_properties", "contextualization_type"):
-                config.contextualization_type = cp.get("vm_properties", "contextualization_type")
         else:
             # the only thing expected here is a simple ini file containing:
             #

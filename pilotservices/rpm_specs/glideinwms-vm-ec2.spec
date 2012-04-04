@@ -7,26 +7,22 @@
 %{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
 %endif
 
-Name:               gwms-pilot-launcher-ec2
+Name:               glideinwms-vm-ec2
 Version:            0.0.1
 Release:            3
 
-Summary:            The glideinWMS service that contextualizes an Amazon EC2 AMI
+Summary:            The glideinWMS service that contextualizes an EC2 VM
 Group:              System Environment/Daemons
 License:            Fermitools Software Legal Information (Modified BSD License)
 URL:                http://www.uscms.org/SoftwareComputing/Grid/WMS/glideinWMS/doc.v2/manual/
-BuildRoot:          %{_builddir}
+BuildRoot:          %{_tmppath}/%{name}-buildroot
 BuildArchitectures: noarch
 
-#Requires:
-#BuildRequires:
+Source0:        glideinwms_pilot.tar.gz
+Source1:        glidein-pilot-ec2.ini
+Source2:        glideinwms-pilot
+Source3:        pilot-launcher
 
-Source0:        glideinwms-pilot
-Source1:        pilot-launcher
-Source2:        glideinwms-tarfile.py
-
-Requires(post): /sbin/service
-Requires(post): /usr/sbin/useradd
 Requires(post): /sbin/chkconfig
 Requires(post): /usr/sbin/groupadd
 Requires(post): /usr/sbin/useradd
@@ -36,34 +32,49 @@ Requires(post): /bin/chmod
 glideinWMS pilot launcher service
 
 Sets up a service definition in init.d (glideinwms-pilot) that executes
-pilot-launcher.  This script contextualizes an Amazon AMI to become a
+pilot_launcher.py.  This script contextualizes an EC2 VM to become a
 glideinWMS worker node.  It is responsible for bootstrapping the pilot Condor
-StartD and shutting down the AMI once the pilot exits.
+StartD and shutting down the VM once the pilot exits.
 
 %prep
-#%setup -q
+%setup -q -n glideinwms_pilot
 
 %build
 #make %{?_smp_mflags}
 
 %pre
-# Make user glidein_pilot
+# Make glidein_pilot group
 /usr/sbin/groupadd -g 91234 glidein_pilot
+
+# Make glidein_pilot group - Do NOT create the home directory
 /usr/sbin/useradd -M -g 91234 -u 91234 -d /mnt/glidein_pilot -s /bin/bash glidein_pilot
+
+# Add glidein_pilot to sudoers so that it can shutdown the VM without a password 
+/bin/chmod +w /etc/sudoers
+echo glidein_pilot ALL= NOPASSWD: ALL >> /etc/sudoers
+/bin/chmod -w /etc/sudoers
 
 %install
 rm -rf $RPM_BUILD_ROOT
 
-# Install the init.d
+# "install" the python site-packages directory
+install -d $RPM_BUILD_ROOT%{python_sitelib}
+cp -arp ../glideinwms_pilot $RPM_BUILD_ROOT%{python_sitelib}
+
+# install the ini
+install -d  $RPM_BUILD_ROOT/%{_sysconfdir}/glideinwms
+install -m 0755 %{SOURCE1} $RPM_BUILD_ROOT/%{_sysconfdir}/glideinwms/glidein-pilot-ec2.ini
+
+# install the init.d
 install -d  $RPM_BUILD_ROOT/%{_initrddir}
-install -m 0755 %{Source0} $RPM_BUILD_ROOT/%{_initrddir}/glideinwms-pilot
+install -m 0755 %{SOURCE2} $RPM_BUILD_ROOT/%{_initrddir}/glideinwms-pilot
 
 # install the executables
 install -d $RPM_BUILD_ROOT%{_sbindir}
-install -m 0500 %{Source1} $RPM_BUILD_ROOT%{_sbindir}/pilot-launcher
+install -m 0500 %{SOURCE3} $RPM_BUILD_ROOT%{_sbindir}/pilot-launcher
 
-# install the glideinwms_tarfile.py
-cp -rp %{Source2} $RPM_BUILD_ROOT%{python_sitelib}
+%clean
+rm -rf $RPM_BUILD_ROOT
 
 %post
 # $1 = 1 - Installation
@@ -72,14 +83,6 @@ cp -rp %{Source2} $RPM_BUILD_ROOT%{python_sitelib}
 
 /sbin/chkconfig --add glideinwms-pilot
 /sbin/chkconfig glideinwms-pilot on
-
-sed -i "s/SERVICE_VERSION = 0/SERVICE_VERSION = %{version}/" %{_sbindir}/pilot-launcher
-sed -i "s/SERVICE_RELEASE = 0/SERVICE_RELEASE = %{release}/" %{_sbindir}/pilot-launcher
-
-# Add glidein_pilot to sudoers so that it can shutdown the VM without a password 
-/bin/chmod +w /etc/sudoers
-echo glidein_pilot ALL= NOPASSWD: ALL >> /etc/sudoers
-/bin/chmod -w /etc/sudoers
 
 %preun
 # $1 = 0 - Action is uninstall
@@ -91,22 +94,19 @@ if [ "$1" = "0" ] ; then
 
     rm -rf %{_sbindir}/pilot-launcher
     rm -rf %{_initrddir}/glideinwms-pilot
+    rm -rf %{python_sitelib}/glideinwms-pilot
 fi
-
-%clean
-rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root,-)
 %attr(755,root,root) %{_sbindir}/pilot-launcher
 %attr(755,root,root) %{_initrddir}/glideinwms-pilot
+%attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-ec2.ini
+
+%attr(755,root,root) %{python_sitelib}/glideinwms_pilot
 
 
 %changelog
-* Tue Sep 27 2011 Anthony Tiradani  0.0.1-4
-- Changed the names of the source files
-* Wed Jun 1 2011 Anthony Tiradani  0.0.1-3
-- Changed the name of the rpm package to be consistent across versions
-* Mon Oct 18 2010 Anthony Tiradani  0.0.1-1
+* Mon Mar 12 2012 Anthony Tiradani  0.0.1-3
 - Initial Version
 

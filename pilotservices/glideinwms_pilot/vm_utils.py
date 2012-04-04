@@ -4,6 +4,10 @@ import select
 import errno
 import pwd
 import socket
+import shutil
+import pwd
+import grp
+import stat
 
 from errors import PilotError
 
@@ -144,3 +148,76 @@ def get_host():
     fqdn = socket.getfqdn()
     
     return (hostname, ip_addr, fqdn)
+
+def cp(source, destination):
+    shutil.copy2(source, destination)
+
+def rm(path, recurse=False):
+    """
+    Remove file or directory specified by path
+    
+    @type path: string
+    @param path: file to be removed
+    @type recurse: boolean
+    @param recurse: if true, the function will delete all files and 
+    sub-directories as well
+    """
+    if os.path.isdir(path):
+        if recurse:
+            shutil.rmtree(path)
+        else:
+            os.rmdir(path)
+    else:
+        os.remove(path)
+
+def chmod(mode, path):
+    os.chmod(path, mode)
+
+def mv(orig_path, new_path, overwrite_new=False):
+    if os.path.exists(new_path) and not overwrite_new:
+        raise "Destination path already exists"
+    shutil.move(orig_path, new_path)
+
+def cp(source, destination):
+    shutil.copy2(source, destination)
+
+def safe_write(path, file_data):
+    """
+    Note: this does *NOT* append
+     
+    check if path exists, if yes move original to new name
+    write path
+    """
+    if os.path.exists(path):
+        directory = os.path.dirname(path)
+        filename = os.path.basename(path)
+        extension = str(time.time())
+        backup_name = "%s/%s.bck_%s" % (directory, filename, extension)
+        shutil.copy2(path, backup_name)
+
+    fd = open(path, 'w')
+    fd.write(file_data)
+    fd.close()
+
+def ls(directory):
+    """
+    Convenience function for os.listdir; returns a directory listing.
+    """
+    return os.listdir(directory)
+
+def getuid(username):
+    return pwd.getpwnam(username)[2]
+
+def getgid(groupname):
+    return grp.getgrnam(groupname)[2]
+
+def has_permissions(dir, level, perms):
+    result = True
+    mode = stat.S_IMODE(os.lstat(dir)[stat.ST_MODE])
+    for perm in perms:
+        if mode & getattr(stat, "S_I" + perm + level):
+            continue
+        result = False
+        break
+    return result
+

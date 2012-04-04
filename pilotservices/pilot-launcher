@@ -2,8 +2,8 @@
 
 import signal
 import urllib
+import ConfigParser
 
-import glideinwms_pilot.version_info
 import glideinwms_pilot.vm_utils
 
 from glideinwms_pilot.errors import PilotError
@@ -12,52 +12,31 @@ from glideinwms_pilot.simple_logging import Logger
 from glideinwms_pilot.user_data import retrieve_user_data
 from glideinwms_pilot.user_data import extract_user_data
 
-# Pilot Environment class
-class PilotEnvironment(dict):
-    """
-    Customized dictionary for defining the environment that will be used for
-    launching the glideinWMS pilot
-    """
-    def __init__(self, config):
-        dict.__init__(self)
-
-        self["OSG_GRID"] = "/usr/local/osg/wn_client/current"
-        self["OSG_APP"] = "/mnt/app"
-        self["OSG_DATA"] = "/mnt/data"
-        self["VOMS_PROXY_INFO_DONT_VERIFY_AC"] = "1"
-        self["GLIDEIN_Condor_IDS"] = config.user_ids
-        self["X509_USER_PROXY"] = config.proxy_file
-
-    def export(self):
-        environment = ""
-        try:
-            for key, value in self.items():
-                environment += "export %s=%s; " % (key, value)
-        except:
-            # pylint: disable=W0702
-            pass
-        return environment
-
-    def __repr__(self): return self.export()
-
 class Config(object):
     def __init__(self):
-        self.version = glideinwms_pilot.version_info.SERVICE_VERSION
-        self.release = glideinwms_pilot.version_info.SERVICE_RELEASE
-        self.glidein_user = "glidein_pilot"
-        self.user_ids = "91234.91234"
-        self.home_dir = "/mnt/%s" % self.glidein_user
-        self.ini_file = "%s/glidein_userdata" % self.home_dir
-        self.userdata_file = "%s/userdata_file" % self.home_dir
+        config_ini = "/etc/glideinwms/glidein-pilot.ini"
+        if not os.path.exists(config_ini):
+            raise PilotError("%s does not exist" % config_ini)
+        self.cp = ConfigParser.ConfigParser()
+        self.cp.read(config_ini)
 
-        self.default_max_lifetime = 172800 # 48 hours
+        self.glidein_user = self.cp.get("GLIDEIN_USER", "user_name")
+        self.user_ids = self.cp.get("GLIDEIN_USER", "user_ids")
+        self.home_dir = self.cp.get("GLIDEIN_USER", "user_home")
+
+        self.default_max_lifetime = ("DEFAULTS", "default_max_lifetime") # 48 hours
         self.max_lifetime = self.default_max_lifetime  # can be overriden
         self.disable_shutdown = False
 
-        self.contextualization_type = glideinwms_pilot.version_info.CONTEXTUALIZE_TYPE
-        self.ec2_url = "http://169.254.169.254/latest/user-data"
+        self.contextualization_type = self.cp.get("DEFAULTS", "contextualize_protocol")
+        self.ec2_url = self.cp.get("DEFAULTS", "ec2_url")
+        self.one_user_data_file = self.cp.get("DEFAULTS", "one_user_data_file")
+        
+        self.ini_file = "%s/glidein_userdata" % self.home_dir
+        self.userdata_file = "%s/userdata_file" % self.home_dir
 
         self.log = Logger(self.home_dir)
+        self.log.logit("Pilot Launcher started...")
 
         self.admin_email = ""
         self.debug = False
@@ -68,33 +47,37 @@ class Config(object):
         self.proxy_file = ""
         self.pilot_args = ""
 
-    def __str__(self):
-        repr_str = """Config Object %s.%s
-    glidein_user: %s
-    user_ids: %s
-    home_dir: %s
-    ini_file: %s
-    userdata_file: %s
-    default_max_lifetime: %s
-    max_lifetime: %s
-    disable_shutdown: %s
-    contextualization_type: %s
-    admin_email: %s
-    debug: %s
-    factory_url: %s
-    pilot_args: %s
-    proxy_file: %s
-"""
-        return repr_str % (str(self.version), str(self.release),
-                str(self.glidein_user), str(self.user_ids), str(self.home_dir),
-                str(self.ini_file), str(self.userdata_file), str(self.default_max_lifetime),
-                str(self.max_lifetime), str(self.disable_shutdown),
-                str(self.contextualization_type), str(self.admin_email),
-                str(self.debug), str(self.factory_url), str(self.pilot_args),
-                str(self.proxy_file))
+    def export_grid_env(self):
+        environment = ""
+        try:
+            for options in self.cp.options("GRID_ENV"):
+                environment += "export %s=%s; " % (str(option).upper(), 
+                                                   self.cp.get("GRID_ENV", option))
 
+            environment += "export GLIDEIN_Condor_IDS=%s;" % self.user_ids
+            environment += "export X509_USER_PROXY=%s;" % self.proxy_file
 
-def shutdown_ami(config):
+        except:
+            # pylint: disable=W0702
+            pass
+        return environment
+
+    def make_directories(self):
+        # Make GLIDEIN_HOME
+        glideinwms_pilot.vm_utils.mkdir_p(self.home_dir)
+        glideinwms_pilot.vm_utils.chown(self.user_ids, self.home_dir)
+        config.log.logit("Home directory (%s) created." % config.home_dir)
+        try:
+            for options in self.cp.options("DIRECTORIES"):
+                directory = self.cp.get("DIRECTORIES", option)
+                glideinwms_pilot.vm_utils.mkdir_p(directory)
+                glideinwms_pilot.vm_utils.chown(self.user_ids, directory)
+                config.log.logit("Created directory (%s)." % directory)
+        except:
+            # pylint: disable=W0702
+            pass
+
+def shutdown(config):
     disable_shutdown = config.disable_shutdown
     if disable_shutdown:
         config.log.logit("Shutdown has been disabled")
@@ -103,8 +86,9 @@ def shutdown_ami(config):
 
 def define_cmd(config):
     try:
-        pilot_env = PilotEnvironment(config)
-        cmd = 'su %s -c "%s cd %s; sh glidein_startup.sh %s"' % (config.glidein_user, pilot_env.export(), config.home_dir, config.pilot_args)
+        cmd = 'su %s -c "%s cd %s; sh glidein_startup.sh %s"' % \
+            (config.glidein_user, config.export_grid_env(), 
+             config.home_dir, config.pilot_args)
     except Exception, ex:
         raise PilotError("Error defining pilot launch command: %s\n" % str(ex))
 
@@ -142,15 +126,12 @@ def main():
     glideinwms_pilot.vm_utils.daemonize("/tmp/pilot.pid")
 
     config = Config()
-    # Make GLIDEIN_HOME
-    glideinwms_pilot.vm_utils.mkdir_p(config.home_dir)
-    glideinwms_pilot.vm_utils.chown(config.user_ids, config.home_dir)
-
-    config.log.logit("Pilot Launcher started...")
-    config.log.logit("Pilot launcher has already been daemonized...")
-    config.log.logit("Home directory (%s) created." % config.home_dir)
+    config.make_directories()
 
     try:
+        # chown the log file to the glidein user so that that user can write to it
+        glideinwms_pilot.vm_utils.chown(config.user_ids, config.log.get_logfile())
+
         # get the user data - should be a tar file
         config.log.logit("Retrieving user data")
         retrieve_user_data(config)
@@ -198,7 +179,7 @@ def main():
     signal.alarm(0)
 
     # need to figure out how to set up glidein_pilot user to be able to sudo
-    shutdown_ami(config)
+    shutdown(config)
 
 if __name__ == "__main__":
     main()
