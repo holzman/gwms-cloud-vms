@@ -5,7 +5,7 @@
 url --url="http://newman.ultralight.org/os/centos/5/x86_64"
 repo --name="Updates" --baseurl=http://newman.ultralight.org/mirror/centos/5/updates/x86_64 --cost=99
 repo --name="CernVM" --baseurl=http://cvmrepo.web.cern.ch/cvmrepo/yum/cvmfs/x86_64/ --cost=99
-repo --name="EPEL" --baseurl=http://download.fedora.redhat.com/pub/epel/5/x86_64/ --cost=99
+repo --name="EPEL" --baseurl=http://download.fedoraproject.org/pub/epel/5/x86_64/ --cost=99
 repo --name="OSG" --baseurl=http://repo.grid.iu.edu/osg-testing/x86_64/ --cost=98
 
 # System keyboard
