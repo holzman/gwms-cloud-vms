@@ -4,6 +4,7 @@ import tempfile
 import subprocess
 import ConfigParser
 import glideinwms_tarfile
+import vm_utils
 
 from errors import PilotError
 from errors import UserDataError
@@ -20,12 +21,14 @@ def retrieve_user_data(config):
         return ec2_retrieve_user_data(config)
     elif config.contextualization_type.upper() == "FERMI-ONE":
         return fermi_one_retrieve_user_data(config)
+    elif config.contextualization_type.upper() == "NIMBUS":
+        return nimbus_retrieve_user_data(config)
 
 def ec2_retrieve_user_data(config):
     try:
         config.userdata_file, _ = urllib.urlretrieve(config.ec2_url, config.userdata_file)
     except Exception, ex:
-        raise PilotError("Error retrieving User Data(context type: EC2): %s\n" % str(ex))
+        raise UserDataError("Error retrieving User Data(context type: EC2): %s\n" % str(ex))
 
 def fermi_one_retrieve_user_data(config):
     try:
@@ -36,7 +39,18 @@ def fermi_one_retrieve_user_data(config):
         # copy the OpenNebula userdata file
         vm_utils.cp(config.one_user_data_file, config.userdata_file)
     except Exception, ex:
-        raise PilotError("Error retrieving User Data (context type: FERMI-ONE): %s\n" % str(ex))
+        raise UserDataError("Error retrieving User Data (context type: FERMI-ONE): %s\n" % str(ex))
+
+def nimbus_retrieve_user_data(config):
+    try:
+        url_file = open(config.nimbus_url_file, 'r')
+        url = url_file.read().strip()
+        user_data_url = "%s/2007-01-19/user-data" % url
+        config.userdata_file, _ = urllib.urlretrieve(user_data_url, config.userdata_file)
+    except IOError, ex:
+        raise UserDataError("Could not open Nimbus meta-data url file (context type: NIMBUS): %s\n" % str(ex))
+    except Exception, ex:
+        raise UserDataError("Error retrieving User Data (context type: NIMBUS): %s\n" % str(ex))
 
 def extract_user_data(config):
     delimiter = "####"

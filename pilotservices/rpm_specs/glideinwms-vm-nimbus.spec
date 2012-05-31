@@ -1,22 +1,22 @@
-Name:               glideinwms-vm-ec2
+Name:               glideinwms-vm-nimbus
 Version:            0.0.1
 Release:            3
 
-Summary:            The glideinWMS service that contextualizes an EC2 VM
+Summary:            The glideinWMS service that contextualizes a Nimbus VM
 Group:              System Environment/Daemons
 License:            Fermitools Software Legal Information (Modified BSD License)
 URL:                http://www.uscms.org/SoftwareComputing/Grid/WMS/glideinWMS/doc.v2/manual/
 BuildRoot:          %{_tmppath}/%{name}-buildroot
 BuildArchitectures: noarch
 
-Source0:        glidein-pilot-ec2.ini
+Source0:        glidein-pilot-nimbus.ini
 
 Requires:       glideinwms-vm-core
-Conflicts:      glideinwms-vm-nimbus
+Conflicts:      glideinwms-vm-ec2
 Conflicts:      glideinwms-vm-one
 
 %description
-glideinWMS pilot launcher service for EC2
+glideinWMS pilot launcher service for Nimbus
 
 Sets up a service definition in init.d (glideinwms-pilot) that executes
 pilot_launcher.  This script contextualizes an EC2 VM to become a
