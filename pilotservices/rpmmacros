@@ -1,0 +1,7 @@
+%_topdir    %(echo $RPM_TOPDIR)
+%_builddir  %{_topdir}/BUILD
+%_sourcedir %{_topdir}/SOURCES
+%_rpmdir    %{_topdir}/RPMS
+%_specdir   %{_topdir}/SPECS
+%_srcrpmdir %{_topdir}/SRPMS
+%_tmppath   %{_topdir}/TMP
