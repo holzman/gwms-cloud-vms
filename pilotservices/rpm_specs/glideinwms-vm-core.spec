@@ -19,8 +19,6 @@ BuildRoot:          %{_tmppath}/%{name}-buildroot
 BuildArchitectures: noarch
 
 Source0:        glideinwms_pilot.tar.gz
-Source1:        glideinwms-pilot
-Source2:        pilot-launcher
 
 Requires(post): /sbin/chkconfig
 Requires(post): /usr/sbin/groupadd
@@ -46,6 +44,8 @@ down the VM once the pilot exits.
 /usr/sbin/groupadd -g 91234 glidein_pilot
 
 # Make glidein_pilot group - Do NOT create the home directory
+# On EC2 we are placing the home directory into ephemeral storage.
+# The pilot-launcher script will create the directory and set permissions
 /usr/sbin/useradd -M -g 91234 -u 91234 -d /mnt/glidein_pilot -s /bin/bash glidein_pilot
 
 # Add glidein_pilot to sudoers so that it can shutdown the VM without a password 
@@ -58,15 +58,15 @@ rm -rf $RPM_BUILD_ROOT
 
 # "install" the python site-packages directory
 install -d $RPM_BUILD_ROOT%{python_sitelib}
-cp -arp ../glideinwms_pilot $RPM_BUILD_ROOT%{python_sitelib}
+cp -arp glideinwms_pilot $RPM_BUILD_ROOT%{python_sitelib}
 
 # install the init.d
 install -d  $RPM_BUILD_ROOT/%{_initrddir}
-install -m 0755 %{SOURCE1} $RPM_BUILD_ROOT/%{_initrddir}/glideinwms-pilot
+install -m 0755 glideinwms-pilot $RPM_BUILD_ROOT/%{_initrddir}/glideinwms-pilot
 
 # install the executables
 install -d $RPM_BUILD_ROOT%{_sbindir}
-install -m 0500 %{SOURCE2} $RPM_BUILD_ROOT%{_sbindir}/pilot-launcher
+install -m 0500 pilot-launcher $RPM_BUILD_ROOT%{_sbindir}/pilot-launcher
 
 %clean
 rm -rf $RPM_BUILD_ROOT
