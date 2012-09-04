@@ -68,6 +68,7 @@ def extract_user_data(config):
         if userdata.find(delimiter) > 0:
             userdata = userdata.split(delimiter)
             extra_args = userdata[1]
+            extra_args = extra_args.replace("\\", "")
 
             # handle the tarball
             tardata = base64.b64decode(userdata[0])

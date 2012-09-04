@@ -3,39 +3,36 @@
 import os
 import signal
 import urllib
-import ConfigParser
-
-import glideinwms_pilot.vm_utils
+from optparse import OptionParser
 
 from glideinwms_pilot.errors import PilotError
 from glideinwms_pilot.errors import TimeoutError
 from glideinwms_pilot.errors import ConfigError
+
+from glideinwms_pilot.vm_utils import chown
+from glideinwms_pilot.vm_utils import chmod
+from glideinwms_pilot.vm_utils import cd
+from glideinwms_pilot.vm_utils import launch_pilot
+from glideinwms_pilot.vm_utils import drop_privs
+
 from glideinwms_pilot.user_data import retrieve_user_data
 from glideinwms_pilot.user_data import extract_user_data
+
 from glideinwms_pilot.config import Config
 
-def shutdown(config):
-    disable_shutdown = config.disable_shutdown
+def shutdown(disable_shutdown=False):
     if disable_shutdown:
-        config.log.logit("Shutdown has been disabled")
+        print "shutdown disabled"
     else:
-        glideinwms_pilot.vm_utils.shutdown_vm()
-
-def define_cmd(config):
-    try:
-        cmd = 'su %s -c "%s cd %s; sh glidein_startup.sh %s"' % \
-            (config.glidein_user, config.export_grid_env(), 
-             config.home_dir, config.pilot_args)
-    except Exception, ex:
-        raise PilotError("Error defining pilot launch command: %s\n" % str(ex))
-
-    return cmd
+        print "shutting down"
+        #glideinwms_pilot.vm_utils.shutdown_vm()
 
 def retrieve_glidein_startup(config):
     try:
         url = "%s/glidein_startup.sh" % config.factory_url
         script = "%s/glidein_startup.sh" % config.home_dir
         script, _ = urllib.urlretrieve(url, script)
+        chown(config.user_ids, script)
     except Exception, ex:
         raise PilotError("Error retrieving glidein_startup.sh: %s\n" % str(ex))
 
@@ -60,68 +57,81 @@ def main():
         6)  create an environment string to pass with final command
         7)  launch the glidein pilot with the appropriate environment
     """
-    glideinwms_pilot.vm_utils.daemonize("/tmp/pilot.pid")
+
+    usage = "usage: %prog [options] [Site FQDN]"
+    parser = OptionParser(usage=usage)
+    parser.add_option("-d", "--disable-daemon", action="store_true", 
+                      dest="disable_daemon", default=False, 
+                      help="Disable the daemon functionality and run in "\
+                           "terminal")
+    parser.add_option("-c", "--config-file", dest="config_file", 
+                      default="/etc/glideinwms/glidein-pilot.ini", 
+                      help="Specify a custom config file")
+
+    (options, args) = parser.parse_args()
+
+
+    if options.disable_daemon:
+        print "disable daemon call"
+    else:
+        glideinwms_pilot.vm_utils.daemonize("/tmp/pilot.pid")
 
     # If config fails, we need to write error to console if available
     try:
-        config = Config()
-        config.make_directories()
-    
+        config = Config(options.config_file)
+        config.setup()
+        disable_shutdown = config.disable_shutdown
+
         try:
-            # chown the log file to the glidein user so that that user can write to it
-            glideinwms_pilot.vm_utils.chown(config.user_ids, config.log.get_logfile())
-    
+            # Change to the working directory
+            cd(config.home_dir)
+
+            # drop privileges to the glidein user
+            config.log.log_info("Dropping privs to %s" % config.glidein_user)
+            drop_privs(config.glidein_user)
+
             # get the user data - should be a tar file
-            config.log.logit("Retrieving user data")
+            config.log.log_info("Retrieving user data")
             retrieve_user_data(config)
-    
+
             # untar the user data
-            config.log.logit("Extracting user data")
+            config.log.log_info("Extracting user data")
             extract_user_data(config)
-    
-            # Set up a safety switch that will automatically terminate this VM if
-            # something went wrong and it runs for longer than config.max_lifetime
-            signal.signal(signal.SIGALRM, handler_max_lifetime)
-            config.log.logit("Setting alarm to %s seconds" % config.max_lifetime)
-            signal.alarm(int(config.max_lifetime))
-    
-            # ensure that the proxy is owned by the correct user
-            config.log.logit("Chowning the VO proxy")
-            glideinwms_pilot.vm_utils.chown(config.user_ids, config.proxy_file)
-    
+
             # get the glidein_startup.sh script
-            config.log.logit("Retrieving glidein_startup.sh")
+            config.log.log_info("Retrieving glidein_startup.sh")
             retrieve_glidein_startup(config)
-    
-            # generate the pilot launch command
-            config.log.logit("Generating the pilot launch command")
-            cmd = define_cmd(config)
-    
+            chmod(0755, "%s/glidein_startup.sh" % config.home_dir)
+
+            # configure pilot launch environment
+            config.log.log_info("Configuring pilot environment...")
+            config.log.log_info("    Username: %s" % config.glidein_user)
+
+            pilot_env = config.get_grid_env()
+            config.log.log_info("    Environment: %s" % str(pilot_env))
+
+            pilot_args = config.pilot_args.split()
+            pilot_args.insert(0, "glidein_startup.sh")
+            config.log.log_info("Pilot arguments: %s" % str(pilot_args))
+
             # launch the pilot
-            config.log.logit("About to execute command: \n%s" % cmd)
-            config.log.logit("===== BEGIN LOGGING EXTERNAL (non-formatted) DATA ======")
-    
-            glideinwms_pilot.vm_utils.launch_pilot(cmd, config.log.get_logfile_fd(), config.log.get_logfile_fd())
-    
-            config.log.logit("===== END LOGGING EXTERNAL (non-formatted) DATA ======")
-    
+            # The pilot will only be allowed to run for config.max_lifetime
+            # seconds before being terminated
+            glidein_startup = "%s/glidein_startup.sh" % config.home_dir
+            config.log.log_info("Launching Pilot (%s)..." % glidein_startup)
+            launch_pilot(glidein_startup, 
+                         float(config.max_lifetime), config.log, 
+                         pilot_args, pilot_env)
+
         except PilotError, ex:
             message = "A PilotError has occured: %s" % str(ex)
-            config.log.log_err(message)
-        except TimeoutError, ex:
-            message = "Timeout Error occurred.  The Pilot has been running for more than %s seconds" % str(config.max_lifetime)
             config.log.log_err(message)
         except Exception, ex:
             config.log.log_err("Error launching pilot: %s" % str(ex))
     except ConfigError, ex:
-        # we need to figure out how to write to the console
-        pass
+        disable_shutdown = False
 
-    # turn off the alarm signal since the very next step is to shutdown the VM anyway
-    signal.alarm(0)
-
-    # need to figure out how to set up glidein_pilot user to be able to sudo
-    shutdown(config)
+    shutdown(disable_shutdown)
 
 if __name__ == "__main__":
     main()

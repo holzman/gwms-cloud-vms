@@ -1,15 +1,16 @@
 import os
-import popen2
-import select
+import sys
 import errno
 import pwd
 import socket
 import shutil
-import pwd
 import grp
 import stat
+import time
 
 from errors import PilotError
+from process_handling import run_child
+from process_handling import wait_children
 
 #### BEGIN DAEMON CODE ####
 
@@ -36,15 +37,15 @@ def daemonize(pidfile):
     """
     try:
         pid = os.fork()
-    except OSError, e:
-        raise Exception("%s [%d]" % (e.strerror, e.errno))
+    except OSError, ex:
+        raise Exception("%s [%d]" % (ex.strerror, ex.errno))
 
     if (pid == 0):       # The first child.
         os.setsid()
         try:
             pid = os.fork()        # Fork a second child.
-        except OSError, e:
-            raise Exception("%s [%d]" % (e.strerror, e.errno))
+        except OSError, ex:
+            raise Exception("%s [%d]" % (ex.strerror, ex.errno))
 
         if (pid == 0):    # The second child.
             os.chdir(WORKDIR)
@@ -74,49 +75,12 @@ def shutdown_vm():
     cmd = "sudo shutdown -h now"
     os.system(cmd)
 
-def launch_pilot(command, fdout, fderr):
-    try:
-        child = popen2.Popen3(command, capturestderr=True)
-        child.tochild.close()
-
-        stdout = child.fromchild
-        stderr = child.childerr
-
-        outfd = stdout.fileno()
-        errfd = stderr.fileno()
-
-        fdlist = [outfd, errfd]
-        while fdlist:
-            ready = select.select(fdlist, [], [])
-            if outfd in ready[0]:
-                outchunk = stdout.read()
-                if outchunk == '':
-                    fdlist.remove(outfd)
-                else:
-                    fdout.write(outchunk)
-                    fdout.flush()
-            if errfd in ready[0]:
-                errchunk = stderr.read()
-                if errchunk == '':
-                    fdlist.remove(errfd)
-                else:
-                    fderr.write(errchunk)
-                    fderr.flush()
-
-        exitStatus = child.wait()
-
-        if exitStatus:
-            raise PilotError('Command %s exited with %d\n' % (command, os.WEXITSTATUS(exitStatus)))
-    except PilotError, ex:
-        raise
-    except Exception, ex:
-        raise PilotError("Unexpected error encountered while running command [%s]: %s\n" % (command, str(ex)))
-
 def drop_privs(username):
     # check if we are root.  If we are, drop privileges
     start_uid = os.getuid()
     if start_uid == 0:
-        # NOTE:  Must set gid first or you will get an "Operation not permitted" error
+        # NOTE:  Must set gid first or you will get an 
+        #        "Operation not permitted" error
         pwd_tuple = pwd.getpwnam(username)
         pw_uid = pwd_tuple[2]
         pw_gid = pwd_tuple[3]
@@ -134,13 +98,14 @@ def mkdir_p(path):
         if ex.errno == errno.EEXIST:
             pass
         else:
-            raise PilotError("Error creating path (%s): %s\n" % (path,str(ex)))
+            raise PilotError("Error creating path (%s): %s\n" % (path, str(ex)))
 
 def chown(user_group, full_path):
     # I can do this through python libs, but this is so much easier!
     rtn = os.system("chown -R %s %s" % (user_group, full_path))
     if rtn != 0:
-        raise PilotError("Failed to change ownership of file.  Return Code: %s\n" % str(rtn))
+        raise PilotError("Failed to change ownership of file.  \n" \
+                         "Return Code: %s\n" % str(rtn))
 
 def get_host():
     hostname = socket.gethostname()
@@ -151,6 +116,17 @@ def get_host():
 
 def cp(source, destination):
     shutil.copy2(source, destination)
+
+def cd(path):
+    try:
+        os.chdir(path)
+    except OSError:
+        _, exc_value, _ = sys.exc_info()
+        raise PilotError("Failed to change directory.  Reason: %s" % exc_value)
+    except:
+        _, exc_value, _ = sys.exc_info()
+        raise PilotError("Unknown Error: %s" % exc_value)
+
 
 def rm(path, recurse=False):
     """
@@ -177,9 +153,6 @@ def mv(orig_path, new_path, overwrite_new=False):
     if os.path.exists(new_path) and not overwrite_new:
         raise "Destination path already exists"
     shutil.move(orig_path, new_path)
-
-def cp(source, destination):
-    shutil.copy2(source, destination)
 
 def safe_write(path, file_data):
     """
@@ -211,13 +184,23 @@ def getuid(username):
 def getgid(groupname):
     return grp.getgrnam(groupname)[2]
 
-def has_permissions(dir, level, perms):
+def has_permissions(directory, level, perms):
     result = True
-    mode = stat.S_IMODE(os.lstat(dir)[stat.ST_MODE])
+    mode = stat.S_IMODE(os.lstat(directory)[stat.ST_MODE])
     for perm in perms:
         if mode & getattr(stat, "S_I" + perm + level):
             continue
         result = False
         break
     return result
+
+
+def launch_pilot(cmd, timeout, log_writer, args, env):
+    pid = run_child(cmd, log_writer, args=args, env=env)
+    # Wait for the results
+    results = wait_children([pid, ], timeout, log_writer)
+    for pid in results.keys():
+        log_writer.log_info("PID: %s" % str(pid))
+        log_writer.log_info("PID Status: %s" % str(results[pid]))
+
 
