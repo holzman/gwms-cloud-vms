@@ -103,7 +103,8 @@ class SyslogWriter(object):
 
 class FileWriter(object):
     def __init__(self, log_dir, file_name="pilot_launcher.log"):
-        self.log = open("%s/pilot_launcher.log" % log_dir, "a")
+        self.log_file = "%s/pilot_launcher.log" % log_dir
+        self.log = open(self.log_file, "a")
 
     def write(self, text_string):
         self.log.write(text_string)
@@ -172,7 +173,10 @@ class Logger(object):
         self.write(message, prefix="ERROR")
 
     def get_logfile_path(self):
-        return "%s/pilot_launcher.log" % self.log_dir
+        try:
+            return self.log.log_file
+        except:
+            return ""
 
     def get_logfile(self):
         return self.log
