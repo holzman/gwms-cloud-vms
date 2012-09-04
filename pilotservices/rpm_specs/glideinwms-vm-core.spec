@@ -8,8 +8,8 @@
 %endif
 
 Name:               glideinwms-vm-core
-Version:            0.0.1
-Release:            3
+Version:            0.1
+Release:            1
 
 Summary:            The glideinWMS service that contextualizes a VM
 Group:              System Environment/Daemons
@@ -56,15 +56,21 @@ echo glidein_pilot ALL= NOPASSWD: ALL >> /etc/sudoers
 %install
 rm -rf $RPM_BUILD_ROOT
 
+# For some reason the setup macro cd's into the glideinwms_pilot directory.
+# We will move up one directory so that we can access all the source files
+# without having to specify relative paths.
+cd ..
+
 # "install" the python site-packages directory
 install -d $RPM_BUILD_ROOT%{python_sitelib}
+# copy the glideinwms_pilot package to the python site-packages directory
 cp -arp glideinwms_pilot $RPM_BUILD_ROOT%{python_sitelib}
 
 # install the init.d
 install -d  $RPM_BUILD_ROOT/%{_initrddir}
 install -m 0755 glideinwms-pilot $RPM_BUILD_ROOT/%{_initrddir}/glideinwms-pilot
 
-# install the executables
+# install the "executable"
 install -d $RPM_BUILD_ROOT%{_sbindir}
 install -m 0500 pilot-launcher $RPM_BUILD_ROOT%{_sbindir}/pilot-launcher
 
@@ -99,6 +105,6 @@ fi
 %attr(755,root,root) %{python_sitelib}/glideinwms_pilot
 
 %changelog
-* Mon May 30 2012 Anthony Tiradani  0.0.1-3
+* Mon Sep 04 2012 Anthony Tiradani  0.0.1-1
 - Initial Version
 
