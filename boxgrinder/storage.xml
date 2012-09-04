@@ -1,0 +1,4 @@
+<storage-mapping>
+    <lfn-to-pfn protocol="xrootd" destination-match=".*" path-match="/+store/(.*)" result="root://xrootd.unl.edu//store/\$1"/>
+    <lfn-to-pfn protocol="srmv2"  destination-match=".*" chain="direct" path-match="/+store/(.*)" result="srm://srm.unl.edu:8443/srm/v2/server?SFN=/mnt/hadoop/user/uscms01/pnfs/unl.edu/data4/cms/store/\$1"/>
+</storage-mapping>

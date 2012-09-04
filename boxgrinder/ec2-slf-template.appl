@@ -1,0 +1,72 @@
+name: sl5
+summary: Just Enough Operating System based on sl5
+
+os:
+  name: sl
+  version: 5
+
+hardware:
+  partitions:
+    "/":
+      size: 9
+
+default_repos: false
+
+repos:
+  - name: "base"
+    baseurl: "ftp://linux.fnal.gov/linux/fermi/slf57/x86_64/SL"
+  - name: "Security"
+    baseurl: "ftp://linux.fnal.gov/linux/fermi/slf57/x86_64/updates/security"
+  - name: "Contrib"
+    baseurl: "ftp://linux.fnal.gov/linux/fermi/slf57/x86_64/contrib"
+  - name: "FastBugs"
+    baseurl: "ftp://linux.fnal.gov/linux/fermi/slf57/x86_64/updates/fastbugs"
+  - name: "Fermi-Site"
+    baseurl: "ftp://linux.fnal.gov/linux/fermi/slf57/x86_64/sites/Fermi/SITERPMS"
+  - name: "epel"
+    baseurl: "http://download.fedoraproject.org/pub/epel/5/x86_64"
+  - name: "osg"
+    baseurl: "http://repo.grid.iu.edu/3.0/el5/osg-release/x86_64"
+
+packages:
+  - @base
+  - vim-enhanced
+  - openssh
+  - openssh-server
+  - openssh-clients
+  - wget
+  - curl
+  - python
+  - libxslt
+  - sysklogd
+  - ntp
+  - dhclient
+  - iputils
+  - krb5-libs
+  - krb5-workstation
+  - xterm
+  - xorg-x11-xauth
+  - sysklogd
+  - yum
+  - tar
+  - cvmfs
+  - cvmfs-init-scripts
+  - fuse
+  - util-linux
+
+files:
+  "/usr/bin":
+    - "ec2-context.sh"
+  "/usr/sbin":
+    - "get-credentials.sh"
+    - "update-tools.sh"
+  "/etc":
+    - "rc.local"
+
+post:
+  base:
+    - "/sbin/chkconfig ntpd on"
+    - "/sbin/chkconfig iptables off"
+    - "/sbin/chkconfig ip6tables off"
+    - "chmod +x /usr/bin/ec2-context.sh"
+    - "/usr/bin/ec2-context.sh"

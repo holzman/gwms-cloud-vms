@@ -1,0 +1,3 @@
+
+CVMFS_SERVER_URL="http://cvmfs1.fnal.gov:8000/opt/@org@;http://cvmfs2.fnal.gov:8000/opt/@org@;http://cvmfs-stratum-one.cern.ch:8000/opt/@org@"
+

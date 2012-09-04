@@ -1,0 +1,83 @@
+#!/bin/sh
+
+## Ensure that the following services are off
+/sbin/service autofs stop
+/sbin/service cvmfs stop
+
+# Stuff we want to do once at launch and never again:
+# Randomise the root password as the last operation
+# We ideally have some more entropy at this stage
+echo "-----RANDOMISING ROOT PASSWORD-----" |logger -s -t "ec2"
+dd if=/dev/urandom count=128 2>/dev/null|md5sum|passwd --stdin root >/dev/null 2>&1
+
+# Regenerate the host keys at this stage
+# Having more entropy to work with
+echo "-----TRIGGERING HOST KEYS REGENERATION-----"|logger -s -t "ec2"
+echo "Removing existing keys"|logger -s -t "ec2"
+rm -f /etc/ssh/ssh_host_key.pub \
+      /etc/ssh/ssh_host_rsa_key.pub \
+      /etc/ssh/ssh_host_dsa_key.pub \
+      /etc/ssh/ssh_host_key \
+      /etc/ssh/ssh_host_rsa_key \
+      /etc/ssh/ssh_host_dsa_key
+echo "Bouncing sshd to force regeneration"|logger -s -t "ec2"
+/sbin/service sshd restart
+echo "Setting sshd to start as a service"|logger -s -t "ec2"
+/sbin/chkconfig --level 2345 sshd on
+
+touch /var/lock/subsys/local
+
+# =*Output ssh host keys to console*=
+[ -f /etc/ssh/ssh_host_key ] || (ssh-keygen -f /etc/ssh/ssh_host_key -t rsa1 -C 'host' -N '' | logger -s -t "ec2")
+[ -f /etc/ssh/ssh_host_rsa_key ] || (ssh-keygen -f /etc/ssh/ssh_host_rsa_key -t rsa  -C 'host' -N '' | logger -s -t "ec2")
+[ -f /etc/ssh/ssh_host_dsa_key ] || (ssh-keygen -f /etc/ssh/ssh_host_dsa_key -t dsa  -C 'host' -N '' | logger -s -t "ec2")
+
+echo "-----BEGIN SSH HOST KEY FINGERPRINTS-----" |logger -s -t "ec2"
+ssh-keygen -l -f /etc/ssh/ssh_host_key.pub |logger -s -t "ec2"
+ssh-keygen -l -f /etc/ssh/ssh_host_rsa_key.pub |logger -s -t "ec2"
+ssh-keygen -l -f /etc/ssh/ssh_host_dsa_key.pub |logger -s -t "ec2"
+echo "-----END SSH HOST KEY FINGERPRINTS-----"   |logger -s -t "ec2"
+
+# Nimbus needs to have /root/.ssh created so that the create-keypair call will 
+# succeed - shouldn't hurt on an Amazon EC2 image
+mkdir -p /root/.ssh
+chmod 700 /root/.ssh
+
+# get ssh public key for root login
+echo "get ssh public key for root login" |logger -s -t "ec2"
+/usr/bin/curl -f http://169.254.169.254/latest/meta-data/public-keys/0/openssh-key > /tmp/my-key
+if [ $? -eq 0 ] ; then
+    cat /tmp/my-key >> /root/.ssh/authorized_keys
+    chmod 600 /root/.ssh/authorized_keys
+    rm /tmp/my-key
+fi
+
+# or fetch public key using the file in the ephemeral store:
+echo "or fetch public key using the file in the ephemeral store" |logger -s -t "ec2"
+if [ -e /mnt/openssh_id.pub ] ; then
+    cat /mnt/openssh_id.pub >> /root/.ssh/authorized_keys
+    chmod 600 /root/.ssh/authorized_keys
+fi
+
+# Update ec2-ami-tools autmatically.
+[ -f ec2-ami-tools.noarch.rpm ] && rm -f ec2-ami-tools.noarch.rpm
+echo "Attempting ami-utils update from S3"|logger -s -t "ec2"
+(wget --quiet http://s3.amazonaws.com/ec2-downloads/ec2-ami-tools.noarch.rpm && echo "Retreived ec2-ami-tools from S3" || echo "Unable to retreive ec2-ami-tools from S3") | logger -s -t "ec2" 2>/dev/null
+(rpm -U ec2-ami-tools.noarch.rpm 2>/dev/null && echo "Updated ec2-ami-tools from S3" || echo "ec2-ami-tools already up to date") | logger -s -t "ec2"
+
+# update to latest available software
+yum update -y |logger -s -t "ec2"
+
+# Use serverless puppet to configure the AMI
+puppet apply /root/cvmfs.pp |logger -s -t "ec2"
+
+# Enable desired services
+/sbin/chconfig fetch-crl-cron on
+/sbin/chconfig autofs on
+/sbin/chconfig cvmfs on
+
+# Start desired services
+/sbin/service fetch-crl-cron start
+/sbin/service autofs start
+/sbin/service cvmfs start
+

@@ -1,0 +1,39 @@
+ <site-local-config>
+ <site name="T2_US_Nebraska">
+    <event-data>
+      <catalog url="trivialcatalog_file://cvmfs/cms.cern.ch/SITECONF/T2_US_Nebraska/PhEDEx/storage.xml?protocol=direct"/>
+      <catalog url="trivialcatalog_file://cvmfs/cms.cern.ch/SITECONF/T2_US_Nebraska/PhEDEx/storage.xml?protocol=xrootd"/>
+    </event-data>
+    <source-config>
+      <cache-temp-dir name=".:$TMPDIR:$CONDOR_SCRATCH_DIR"/>
+      <cache-hint value="application-only"/>
+      <read-hint value="auto-detect"/>
+      <show-read-stats />
+      <ttree-cache-size value="20971520"/>
+    </source-config>
+
+    <local-stage-out>
+      <command value="hadoop" />
+      <!--<option value="-debug=true" />-->
+      <catalog url="trivialcatalog_file://cvmfs/cms.cern.ch/SITECONF/T2_US_Nebraska/PhEDEx/storage.xml?protocol=hadoop"/>
+      <se-name value="srm.unl.edu" />
+    </local-stage-out>
+    <fallback-stage-out>
+      <se-name value="srm-dcache.rcac.purdue.edu"/>
+      <lfn-prefix value="srm://srm-dcache.rcac.purdue.edu:8443/srm/managerv2?SFN=/"/>
+      <command value="srmv2"/>
+      <option value="-debug"/>
+    </fallback-stage-out>
+    <calib-data>
+        <frontier-connect>
+        <load balance="proxies"/>
+        <proxy url="http://cache01.hep.wisc.edu:8000"/>
+        <proxy url="http://cache02.hep.wisc.edu:8000"/>
+        <server url="http://cmsfrontier.cern.ch:8000/FrontierInt"/>
+        <server url="http://cmsfrontier1.cern.ch:8000/FrontierInt"/>
+        <server url="http://cmsfrontier2.cern.ch:8000/FrontierInt"/>
+        <server url="http://cmsfrontier3.cern.ch:8000/FrontierInt"/>
+      </frontier-connect>
+    </calib-data>
+ </site>
+ </site-local-config>

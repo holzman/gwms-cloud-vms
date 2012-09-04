@@ -1,0 +1,4 @@
+
+CVMFS_REPOSITORIES=cms.cern.ch,cms.hep.wisc.edu
+CVMFS_HTTP_PROXY="http://cache01.hep.wisc.edu:8001|http://cache02.hep.wisc.edu:8001"
+export CMS_LOCAL_SITE=/etc/cvmfs/SITECONF
