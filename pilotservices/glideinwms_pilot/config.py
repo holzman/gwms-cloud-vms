@@ -123,7 +123,6 @@ class Config(object):
                 mkdir_p(directory)
                 chown(self.user_ids, directory)
         except Exception, e:
-            print e
             # pylint: disable=W0702
             pass
 
