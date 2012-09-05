@@ -5,13 +5,6 @@ import fcntl
 import select
 import signal
 
-try:
-    #python 2.5 and above  
-    import hashlib as md5
-except ImportError:
-    # pylint: disable-msg=F0401
-    import md5
-
 def run_child(executable, output_writer, input_reader=None, args=None, env=None):
     """
     Run a child process, hooking its stdout and stderr to output FD
@@ -29,14 +22,12 @@ def run_child(executable, output_writer, input_reader=None, args=None, env=None)
     pid = os.fork()
     if not pid:
         try:
-            _, exec_name = os.path.split(executable)
             if input_reader:
                 os.dup2(input_reader, 0)
             os.dup2(output_fileno, 1)
             os.dup2(output_fileno, 2)
             os.execve(executable, args, env)
-        except Exception, e:
-            print e
+        except:
             os._exit(1)
 
     return pid
@@ -107,8 +98,8 @@ class WaitPids(object):
         """
         count = 0
         for val in pid_dict.values():
-                    if val == -1:
-                        count += 1
+            if val == -1:
+                count += 1
         return count == 0
 
     def wait_pids(self, pids, timeout):
@@ -132,7 +123,7 @@ class WaitPids(object):
             # When a child dies, the SIGCHLD handler will write into the
             # pipe and select will fire.
             try:
-                r, w, x = select.select([self.r_pipe], [], [], timeout)
+                r, _, _ = select.select([self.r_pipe], [], [], timeout)
             except select.error, e:
                 # If the SIGCHLD fires while inside the select, we will get
                 # an EINTR error.
@@ -194,64 +185,3 @@ def wait_children(pids, timeout, log=None):
             exit_status = os.waitpid(pid, 0)
             result[pid] = exit_status[1]
     return result
-    
-
-def launch_modules(modules, module_dir, temp_dir, log=None):
-    """
-    Launch any module which does not have cached output available.
-
-    This process forks off one child per module.
-    The child process writes its output into::
-        
-        $temp_dir/$name.ldif.tmp
-
-    @param modules: The modules dictionary.  The launched PID of the module
-       will be added to its dictionary.
-    @param temp_dir: The temporary directory.
-    @returns: A list of child PIDs.
-    """
-    pids = []
-    for module, info in modules.items():
-        if 'output' in info:
-            continue
-        filename = os.path.join(temp_dir, '%(name)s.ldif.tmp' % info)
-        if os.path.exists(filename):
-            os.unlink(filename)
-        fd_num = os.open(filename, os.O_WRONLY | os.O_TRUNC | os.O_CREAT | os.O_EXCL)
-        executable = os.path.join(module_dir, module)
-        pid = run_child(executable, fd_num)
-        if log:
-            log.debug("Child %s is running in pid %i" % (module, pid))
-        pids.append(pid)
-        info['pid'] = pid
-    return pids
-
-def list_modules(dirname, log=None):
-    """
-    List all of the modules in a directory.
-
-    The returned directory contains the following keys, one per module:
-        - B{name}: The module's name
-
-    @param dirname: Directory to check
-    @returns: A dictionary of module data; one key per file in the directory.
-    """
-    info = {}
-    for filename in os.listdir(dirname):
-        if os.path.isdir(filename):
-            continue
-        if filename.startswith('.'):
-            continue
-        
-        # ignore temporary files         
-        if filename.endswith('~') or \
-               (filename.startswith('#') and filename.endswith('#')):
-            continue
-        
-        mod_info = {}
-        mod_info['name'] = filename
-        info[filename] = mod_info
-        if log:
-            log.debug("Found module %s in directory %s" % (filename, dirname))
-    return info
-

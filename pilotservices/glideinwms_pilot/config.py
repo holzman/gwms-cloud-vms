@@ -122,7 +122,7 @@ class Config(object):
                 directory = self.cp.get("DIRECTORIES", option)
                 mkdir_p(directory)
                 chown(self.user_ids, directory)
-        except Exception, e:
+        except:
             # pylint: disable=W0702
             pass
 
@@ -142,7 +142,7 @@ class Config(object):
                       "the gids don't match. (system gid: %s, configured gid: "\
                       "%s" % (str(pw_gid), str(ids[1]))
                 raise ConfigError(msg)
-        except Exception, e:
+        except:
             raise ConfigError("User specified in configuration not on system")
 
 

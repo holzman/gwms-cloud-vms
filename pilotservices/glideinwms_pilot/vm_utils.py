@@ -151,7 +151,7 @@ def chmod(mode, path):
 
 def mv(orig_path, new_path, overwrite_new=False):
     if os.path.exists(new_path) and not overwrite_new:
-        raise "Destination path already exists"
+        raise Exception("Destination path already exists")
     shutil.move(orig_path, new_path)
 
 def safe_write(path, file_data):

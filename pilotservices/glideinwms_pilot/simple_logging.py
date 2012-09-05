@@ -103,7 +103,7 @@ class SyslogWriter(object):
 
 class FileWriter(object):
     def __init__(self, log_dir, file_name="pilot_launcher.log"):
-        self.log_file = "%s/pilot_launcher.log" % log_dir
+        self.log_file = "%s/%s" % (log_dir, file_name)
         self.log = open(self.log_file, "a")
 
     def write(self, text_string):
