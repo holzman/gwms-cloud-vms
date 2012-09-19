@@ -25,7 +25,7 @@ def shutdown(disable_shutdown=False):
         print "shutdown disabled"
     else:
         print "shutting down"
-        #glideinwms_pilot.vm_utils.shutdown_vm()
+        glideinwms_pilot.vm_utils.shutdown_vm()
 
 def retrieve_glidein_startup(config):
     try:
