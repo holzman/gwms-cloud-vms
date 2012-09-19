@@ -1,0 +1,61 @@
+#!/bin/bash
+
+#
+# mount_ephemeral  - Attempts to mount ephemeral storage
+#
+# chkconfig: 2345 12 88
+# description: Perform various cloud-releated configuration.
+#
+### BEGIN INIT INFO
+# Provides: $network
+### END INIT INFO
+
+# Source function library.
+. /etc/init.d/functions
+
+# pull in sysconfig settings
+[ -f /etc/sysconfig/ephemeral_disks ] && . /etc/sysconfig/ephemeral_disks
+
+## VIRTUAL_DISKS defined in /etc/sysconfig/mount_ephemeral
+start()
+{
+    echo "Attempting to mount ephemeral storage" | tee $LOGFILE
+
+    for VD in $VIRTUAL_DISKS ; do
+        echo "Checking /dev/$VD ..." | tee $LOGFILE
+        fdisk -l /dev/$VD 2>/dev/null | grep Disk >> $LOGFILE
+        if [ $? -eq 0 ]; then
+            d=`date`
+            echo "Virtual disk seen at /dev/$VD: $d" | tee $LOGFILE
+            #echo "Creating filesystem..." | tee $LOGFILE
+            #mkfs.ext3 -F -L home /dev/$VD | tee $LOGFILE
+
+            echo "Mounting and mirroring /home..." | tee $LOGFILE
+            mv -v /home /home.orig 2>&1 | tee $LOGFILE
+            mkdir -v /home  2>&1 | tee $LOGFILE
+            mount -t ext3 /dev/$VD /home 2>&1 | tee $LOGFILE
+            cp -avr /home.orig/* /home 2>&1 | tee $LOGFILE
+            d=`date`
+            echo "Done with /dev/$VD: $d" | tee $LOGFILE
+            break
+        else
+            echo "No virtual disk seen at /dev/$VD: $d" | tee $LOGFILE
+        fi
+        echo "For disk /dev/$VD, nope..." | tee $LOGFILE
+    done
+    d=`date`
+    echo "Done: $d" | tee $LOGFILE
+}
+
+
+case "$1" in
+    start)
+        start
+        ;;
+    status)
+        status
+        ;;
+    *)
+        echo $"Usage: $0 {start|status}"
+        exit 1
+esac

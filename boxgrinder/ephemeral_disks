@@ -1,0 +1,2 @@
+LOGFILE=/var/log/cloudconfig.log
+VIRTUAL_DISKS="vdb xvdb sda2 sdb"
