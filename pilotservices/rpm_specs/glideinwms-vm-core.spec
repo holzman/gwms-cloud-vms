@@ -46,7 +46,7 @@ down the VM once the pilot exits.
 # Make glidein_pilot group - Do NOT create the home directory
 # On EC2 we are placing the home directory into ephemeral storage.
 # The pilot-launcher script will create the directory and set permissions
-/usr/sbin/useradd -M -g 91234 -u 91234 -d /mnt/glidein_pilot -s /bin/bash glidein_pilot
+/usr/sbin/useradd -M -g 91234 -u 91234 -d /home/glidein_pilot -s /bin/bash glidein_pilot
 
 # Add glidein_pilot to sudoers so that it can shutdown the VM without a password 
 /bin/chmod +w /etc/sudoers
