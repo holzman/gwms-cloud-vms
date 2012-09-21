@@ -14,18 +14,14 @@ from glideinwms_pilot.vm_utils import chmod
 from glideinwms_pilot.vm_utils import cd
 from glideinwms_pilot.vm_utils import launch_pilot
 from glideinwms_pilot.vm_utils import drop_privs
+from glideinwms_pilot.vm_utils import shutdown_vm
+from glideinwms_pilot.vm_utils import daemonize
+
 
 from glideinwms_pilot.user_data import retrieve_user_data
 from glideinwms_pilot.user_data import extract_user_data
 
 from glideinwms_pilot.config import Config
-
-def shutdown(disable_shutdown=False):
-    if disable_shutdown:
-        print "shutdown disabled"
-    else:
-        print "shutting down"
-        glideinwms_pilot.vm_utils.shutdown_vm()
 
 def retrieve_glidein_startup(config):
     try:
@@ -74,7 +70,7 @@ def main():
     if options.disable_daemon:
         print "disable daemon call"
     else:
-        glideinwms_pilot.vm_utils.daemonize("/tmp/pilot.pid")
+        daemonize("/tmp/pilot.pid")
 
     # If config fails, we need to write error to console if available
     try:
@@ -131,7 +127,11 @@ def main():
     except ConfigError, ex:
         disable_shutdown = False
 
-    shutdown(disable_shutdown)
+    if disable_shutdown:
+        config.log.log_info("shutdown disabled")
+    else:
+        config.log.log_info("shutting down")
+        shutdown_vm()
 
 if __name__ == "__main__":
     main()
