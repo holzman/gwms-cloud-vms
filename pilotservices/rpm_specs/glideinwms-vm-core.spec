@@ -20,10 +20,12 @@ BuildArchitectures: noarch
 
 Source0:        glideinwms_pilot.tar.gz
 
+# Make sure this package is installed *after* /etc/sudoers is created
+Requires:       sudo
 Requires(post): /sbin/chkconfig
-Requires(post): /usr/sbin/groupadd
-Requires(post): /usr/sbin/useradd
-Requires(post): /bin/chmod
+Requires(pre): /usr/sbin/groupadd
+Requires(pre): /usr/sbin/useradd
+Requires(pre): /bin/chmod
 
 %description
 glideinWMS pilot launcher service
@@ -41,16 +43,14 @@ down the VM once the pilot exits.
 
 %pre
 # Make glidein_pilot group
-/usr/sbin/groupadd -g 91234 glidein_pilot
+getent group glidein_pilot >/dev/null || /usr/sbin/groupadd glidein_pilot
 
-# Make glidein_pilot group - Do NOT create the home directory
-# On EC2 we are placing the home directory into ephemeral storage.
-# The pilot-launcher script will create the directory and set permissions
-/usr/sbin/useradd -M -g 91234 -u 91234 -d /home/glidein_pilot -s /bin/bash glidein_pilot
+# Make glidein_pilot group
+getent passwd glidein_pilot >/dev/null || /usr/sbin/useradd -d /home/glidein_pilot -s /bin/bash glidein_pilot
 
 # Add glidein_pilot to sudoers so that it can shutdown the VM without a password 
 /bin/chmod +w /etc/sudoers
-echo glidein_pilot ALL= NOPASSWD: ALL >> /etc/sudoers
+echo "glidein_pilot ALL= NOPASSWD: ALL" >> /etc/sudoers
 /bin/chmod -w /etc/sudoers
 
 %install

@@ -86,7 +86,8 @@ class Config(object):
             for option in self.cp.options("GRID_ENV"):
                 environment += "export %s=%s; " % (str(option).upper(), self.cp.get("GRID_ENV", option))
 
-            environment += "export GLIDEIN_Condor_IDS=%s;" % self.user_ids
+            # I don't believe it is necessary to run the pilot as specific UID/GID anymore
+            #environment += "export GLIDEIN_Condor_IDS=%s;" % self.user_ids
             environment += "export X509_USER_PROXY=%s;" % self.proxy_file
 
         except:
@@ -105,7 +106,8 @@ class Config(object):
             for option in self.cp.options("GRID_ENV"):
                 environment[str(option).upper()] = self.cp.get("GRID_ENV", option)
 
-            environment["GLIDEIN_Condor_IDS"]= self.user_ids
+            # I don't believe it is necessary to run the pilot as specific UID/GID anymore
+            #environment["GLIDEIN_Condor_IDS"]= self.user_ids
             environment["X509_USER_PROXY"] = self.proxy_file
 
         except:
