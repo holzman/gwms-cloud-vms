@@ -50,7 +50,7 @@ fi
 
 %files
 %defattr(-,root,root,-)
-%attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot.ini
+%attr(755,root,root) %config(noreplace) %{_sysconfdir}/glideinwms/glidein-pilot.ini
 
 %changelog
 * Mon May 30 2012 Anthony Tiradani  0.0.1-3
