@@ -19,7 +19,7 @@ function setup_rmpmmacros
 {
     # setup rmpmmacros
     export RPMMACROS_EXISTS=0
-    if [ -f ~/.rpmrc ]
+    if [ -f ~/.rpmmacros ]
     then
         export RPMMACROS_EXISTS=1
         mv ~/.rpmmacros ~/rpmmacros_save
