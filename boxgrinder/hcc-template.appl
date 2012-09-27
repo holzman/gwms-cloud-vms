@@ -11,10 +11,11 @@ hardware:
       size: 9
 
 repos:
-  - name: "epel"
-    baseurl: "http://download.fedoraproject.org/pub/epel/5/x86_64"
+  - name: "epel-custom"
+    baseurl: "http://cms-xen35.fnal.gov/repos/osg-epel-deps-experimental"
+
   - name: "osg"
-    baseurl: "http://repo.grid.iu.edu/3.0/el5/osg-release/x86_64"
+    baseurl: "http://cms-xen35.fnal.gov/repos/3.0/el5/osg-release/x86_64"
 
 packages:
   - @base
@@ -38,10 +39,26 @@ packages:
   - xorg-x11-xauth
   - yum
   - yum-priorities
+  - osg-wn-client
+  - osg-ca-certs
+  - fetch-crl
+  - cvmfs
+  - glideinwms-vm-core
+  - glideinwms-vm-ec2
 
 files:
   "/etc/rc.d":
     - "rc.local"
+
+  "/etc/ssh":
+    - "sshd_config"
+
+  "/etc/sysconfig":
+    - "ephemeral_disks"
+
+  "/etc/init.d":
+    - "mount_ephemeral"
+
   "/root":
     - "cern.ch.local"
     - "cms.hep.wisc.edu.conf"
@@ -51,3 +68,9 @@ files:
     - "fuse.conf"
     - "site-local-config.xml"
     - "storage.xml"
+
+post:
+  base:
+    - "chmod +x /etc/rc.d/rc.local"
+    - "/sbin/chkconfig mount_ephemeral on"
+
