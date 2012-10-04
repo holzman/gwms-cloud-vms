@@ -73,4 +73,5 @@ post:
   base:
     - "chmod +x /etc/rc.d/rc.local"
     - "/sbin/chkconfig mount_ephemeral on"
+    - "chmod +w /etc/sudoers; sed -i 's/Defaults    requiretty/#Defaults    requiretty/g' /etc/sudoers; chmod -w /etc/sudoers"
 
