@@ -53,6 +53,10 @@ getent passwd glidein_pilot >/dev/null || /usr/sbin/useradd -d /home/glidein_pil
 echo "glidein_pilot ALL= NOPASSWD: ALL" >> /etc/sudoers
 /bin/chmod -w /etc/sudoers
 
+# Note that the sudoers file needs to be modified such that requiretty is 
+# commented out.  Don't want to modify a system security setting in this rpm
+# will add this note to README
+
 %install
 rm -rf $RPM_BUILD_ROOT
 
