@@ -1,0 +1,101 @@
+--- /usr/lib/ruby/gems/1.8/gems/boxgrinder-build-0.10.2/lib/boxgrinder-build/plugins/platform/ec2/ec2-plugin.rb	2012-06-14 08:37:29.000000000 -0400
++++ /usr/lib/ruby/gems/1.8/gems/boxgrinder-build-0.10.2/lib/boxgrinder-build/plugins/platform/ec2/ec2-plugin.rb	2012-08-22 11:31:35.763327460 -0400
+@@ -48,11 +48,11 @@
+         guestfs.upload("/etc/resolv.conf", "/etc/resolv.conf")
+         @log.debug "'/etc/resolv.conf' uploaded."
+ 
+-        if (@appliance_config.os.name == 'rhel' or @appliance_config.os.name == 'centos') and @appliance_config.os.version == '5'
+-          # Remove normal kernel
+-          guestfs.sh("yum -y remove kernel")
+-          # because we need to install kernel-xen package
++        if (@appliance_config.os.name == 'rhel' or @appliance_config.os.name == 'centos' or @appliance_config.os.name == 'sl'   ) and @appliance_config.os.version == '5'
++          # We need to install kernel-xen package
+           guestfs_helper.sh("yum -y install kernel-xen", :arch => @appliance_config.hardware.arch)
++          # and remove normal kernel
++          guestfs.sh("yum -y remove kernel")
+           # and add require modules
+           @linux_helper.recreate_kernel_image(guestfs, ['xenblk', 'xennet'])
+         end
+@@ -220,7 +220,7 @@
+         set("/etc/ssh/sshd_config", "PasswordAuthentication", "no")
+ 
+         # disable root login
+-        set("/etc/ssh/sshd_config", "PermitRootLogin", "no")
++        set("/etc/ssh/sshd_config", "PermitRootLogin", "yes")
+       end
+     end
+   end
+--- /usr/lib/ruby/gems/1.8/gems/boxgrinder-build-0.10.2/lib/boxgrinder-build/plugins/os/rpm-based/rpm-dependency-validator.rb	2012-06-14 08:37:29.000000000 -0400
++++ /usr/lib/ruby/gems/1.8/gems/boxgrinder-build-0.10.2/lib/boxgrinder-build/plugins/os/rpm-based/rpm-dependency-validator.rb	2012-08-22 11:31:48.897353110 -0400
+@@ -69,7 +69,7 @@
+       unless @appliance_config.is64bit?
+         arches = "i386,i486,i586,i686"
+       else
+-        arches = "x86_64"
++        arches = "x86_64,i386,i586,i686"
+       end
+ 
+       root = (@config.dir.root.end_with?('/') ? '' : @config.dir.root)
+--- /usr/lib/ruby/gems/1.8/gems/boxgrinder-build-0.10.2/lib/boxgrinder-build/plugins/platform/ec2/src/rc_local	2012-06-14 08:37:29.000000000 -0400
++++ /usr/lib/ruby/gems/1.8/gems/boxgrinder-build-0.10.2/lib/boxgrinder-build/plugins/platform/ec2/src/rc_local	2012-08-22 11:32:01.159376773 -0400
+@@ -1,26 +1,39 @@
+-key=`curl http://169.254.169.254/2009-04-04/meta-data/public-keys/0/openssh-key 2>/dev/null`
++#
++# rc.local code added by boxgrinder EC2 plugin
++#
++ 
++EC2_SSHKEY_URL=http://169.254.169.254/latest/meta-data/public-keys/0/openssh-key
++CURL_TIMEOUT=2
++
++http_code=`curl --connect-timeout $CURL_TIMEOUT --write-out %{http_code} --silent --output /dev/null $EC2_SSHKEY_URL`
++
++# Only do something if the command returns OK and doesn't timeout. 
++if [ $? -eq 0 ] && [ ! "$http_code" -eq "000" ]; then
++
++    key=`curl http://169.254.169.254/latest/meta-data/public-keys/0/openssh-key 2>/dev/null`
++    if [ "$http_code" -eq "404" ]; then
++        echo "got a 404, do nothing"
++    else
++        for home in `find /home/* -maxdepth 0 -type d 2>/dev/null | tr '\n' ' '`; do
++            user=`echo $home | awk -F '/' '{ print $3 }'`
++
++            if [ ! -d $home/.ssh ] ; then
++                mkdir -p $home/.ssh
++                chmod 700 $home/.ssh
++                chown $user $home/.ssh
++            fi
++            actual_key=`echo $key | awk '{ print $2 }'`
+ 
+-if [ $? -eq 0 ] ; then
+-    for home in `find /home/* -maxdepth 0 -type d 2>/dev/null | tr '\n' ' '`; do
+-        user=`echo $home | awk -F '/' '{ print $3 }'`
+-
+-        if [ ! -d $home/.ssh ] ; then
+-            mkdir -p $home/.ssh
+-            chmod 700 $home/.ssh
+-            chown $user $home/.ssh
+-        fi
+-
+-        actual_key=`echo $key | awk '{ print $2 }'`
+-
+-        if [ -f $home/.ssh/authorized_keys ]; then
+-            if [ "`grep $actual_key $home/.ssh/authorized_keys | wc -l`" -gt 0 ]; then
+-                continue
++            if [ -f $home/.ssh/authorized_keys ]; then
++                if [ "`grep $actual_key $home/.ssh/authorized_keys | wc -l`" -gt 0 ]; then
++                    continue
++                fi
+             fi
+-        fi
+ 
+-        echo $key >> $home/.ssh/authorized_keys
+-        chmod 600 $home/.ssh/authorized_keys
+-        chown $user $home/.ssh/authorized_keys
+-   done
++            echo $key >> $home/.ssh/authorized_keys
++            chmod 600 $home/.ssh/authorized_keys
++            chown $user $home/.ssh/authorized_keys
++       done
++    fi
+ fi
+ 

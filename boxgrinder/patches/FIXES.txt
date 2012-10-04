@@ -1,0 +1,61 @@
+BOXGRINDER FIXES
+
+For our purposes, the current version of Boxgrinder has some bugs which need to 
+be fixed before use. These have been supplied to the Boxgrinder developers, so 
+in theory they should be fixed in the main distribution eventually. 
+
+HOW TO APPLY PATCHES
+
+This patch was generate against boxgrinder version boxgrinder-build-0.10.2-1 on 
+FC16. I believe it should work OK against other distros, and probably versions. 
+Take a look at the patches--they could easily be applied by hand. 
+
+Apply the patches thus:
+
+cd /
+patch -p1 < /path/to/patchfile/bgbuild-fix.patch
+
+
+BUG DESCRIPTION
+
+Bugs:
+
+-- OS plugin handling of i386/x86-64 dependencies:
+
+/usr/lib/ruby/gems/1.8/gems/boxgrinder-build-0.10.2/lib/boxgrinder-build/plugins/os/rpm-based/rpm-dependency-validator.rb
+
+By default, builds of 64-bit platforms do not include i386 in the package
+architecture requested during package installation. This means that there is no
+way to request the 64 bit and 32 bit versions of a package. My patch simply adds
+i386 to the valid list for 64-bit builds, allowing specification of i386
+packages, e.g. lib-foo.i386.
+
+
+-- EC2 rc local:
+/usr/lib/ruby/gems/1.8/gems/boxgrinder-build-0.10.2/lib/boxgrinder-build/plugins/platform/ec2/src/rc_local
+
+The rc local template in the EC2 platform plugin was using an old URL for 
+UserData runtime contextualization. It was also using curl in an unprotected
+fashion, such that it would assume it got valid data whether any had been set or
+not. When VMs are run from non-Amazon toolsets, there may not be any keys or
+other userdata associated with an instance. My patch confirms that curl returned
+successfully, and that the answer is valid.
+
+
+-- EC2 platform plugin kernel handling:
+/usr/lib/ruby/gems/1.8/gems/boxgrinder-build-0.10.2/lib/boxgrinder-build/plugins/platform/ec2/ec2-plugin.rb
+
+The EC2 platform plugin removes the standard kernel package and installs the
+required kernel-xen package. But when done in this order, other packages that
+depend on packagename ‘kernel’ get removed. But they don’t get re-installed
+during the xen-kernel install. Simply reversing the order fixes the problem,
+since the kernel>=X.Y.Z requirement remains satisfied throughout the sequence of
+operations.
+
+
+-- EC2 platform distribution handling:
+/usr/lib/ruby/gems/1.8/gems/boxgrinder-build-0.10.2/lib/boxgrinder-build/plugins/platform/ec2/ec2-plugin.rb
+
+The EC2 platform plugin forgot to properly handle SL similarly to RHEL and
+CentOS in  the need to explicitly install kernel-xen. A patch adds in that check
+so that SL is treated the same.

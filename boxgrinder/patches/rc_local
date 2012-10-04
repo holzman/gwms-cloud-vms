@@ -1,0 +1,49 @@
+# /usr/lib/ruby/gems/1.8/gems/boxgrinder-build-0.10.2/lib/boxgrinder-build/plugins/platform/ec2/src/rc_local
+# rc.local code added by boxgrinder EC2 plugin (#!/bin/sh added separately)
+# 
+
+EC2_SSHKEY_URL=http://169.254.169.254/latest/meta-data/public-keys/0/openssh-key
+CURL_TIMEOUT=2
+RC_LOG=/var/log/rc_local
+
+now=`date`
+echo "[ $now ] Begin rc.local processing." >> $RC_LOG
+
+# Check to make sure things are working
+http_code=`curl --connect-timeout $CURL_TIMEOUT --write-out %{http_code} --silent --output /dev/null $EC2_SSHKEY_URL`
+
+# Only do something if the command returns OK and doesn't timeout. 
+if [ $? -eq 0 ] && [ ! "$http_code" -eq "000" ]; then
+    key=`curl http://169.254.169.254/latest/meta-data/public-keys/0/openssh-key 2>/dev/null`
+    if [ "$http_code" -eq "404" ]; then
+        echo "got a 404, do nothing" >> $RC_LOG
+    else
+        echo "got a 200, process key..." >> $RC_LOG
+        for home in `find /home/* -maxdepth 0 -type d 2>/dev/null | tr '\n' ' '`; do
+            user=`echo $home | awk -F '/' '{ print $3 }'`
+            echo "handling user $user ..." >> $RC_LOG
+            if [ ! -d $home/.ssh ] ; then
+                mkdir -p $home/.ssh
+                chmod 700 $home/.ssh
+                chown $user $home/.ssh
+            fi
+            actual_key=`echo $key | awk '{ print $2 }'`
+
+            if [ -f $home/.ssh/authorized_keys ]; then
+                if [ "`grep $actual_key $home/.ssh/authorized_keys | wc -l`" -gt 0 ]; then
+                    continue
+                fi
+            fi
+
+            echo $key >> $home/.ssh/authorized_keys
+            chmod 600 $home/.ssh/authorized_keys
+            chown $user $home/.ssh/authorized_keys
+       done
+    fi
+else
+    echo "[ $now ] curl return was non-zero, or curl timed out." >> $RC_LOG
+fi
+now=`date`
+echo "[ $now ] Done rc.local processing." >> $RC_LOG
+
+
