@@ -1,10 +1,12 @@
-## glideinWMS Virtual Machine Bootstrap
+glideinWMS Virtual Machine Bootstrap 
+================================================================================
 
 This repository provides the sources for a service which bootstraps a glideinWMS
 pilot and the resources to automate the building of a VM configured with the 
 bootstrap service.
 
-### Bootstrap Service
+Bootstrap Service
+--------------------------------------------------------------------------------
 
 The bootstrap service source and rpm specs are located in the pilot services
 directory.  The bootstrap service currently only supports cloud providers that 
@@ -29,6 +31,7 @@ shutting down the VM, allowing an admin or dev to ssh into the VM for debugging
 purposes.  An example ini file is listed below:
 
 ```ini
+
 [glidein_startup]
 args = blah
 proxy_file_name = pilot_proxy
@@ -38,9 +41,11 @@ webbase= na
 max_lifetime = 43200
 contextualization_type = EC2
 disable_shutdown = True
+
 ```
 
-### VM Building
+VM Building
+--------------------------------------------------------------------------------
 
 I am using [BoxGrinder](http://boxgrinder.org/) to automate VM builds.  It is a
 tool that really has no comparison IMHO.  All related files are in the 
@@ -59,6 +64,7 @@ The following is an example of the config I use (minus the credential
 information of course).  Fill in the appropriate information for your setup.
 
 ```yaml
+
 plugins:
   sl:
     format: raw      # Disk format to use. Default: raw.
@@ -75,12 +81,15 @@ plugins:
     snapshot: false                                                 # default: false
     overwrite: false                                                # default: false
     block-device-mapping: /dev/sdb=ephemeral0
+
 ```
 
 The actual command to run is:
 
 ```bash
+
 boxgrinder-build hcc-template.appl --debug --trace -p ec2 -d ami
+
 ```
 
 If you have configured everything correctly and there are no build errors, you 
