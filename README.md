@@ -13,7 +13,9 @@
 
  The expected user data is in the form:
 
- [Base64 encoded blob]####[additional arguments]
+```
+[Base64 encoded blob]####[additional arguments]
+```
 
  or just a plaintext ini file.
 
