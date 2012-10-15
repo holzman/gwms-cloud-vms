@@ -60,8 +60,17 @@ def main():
                       dest="disable_daemon", default=False, 
                       help="Disable the daemon functionality and run in "\
                            "terminal")
+
+    # if the directory, etc/glideinwms, does not exist lets assume that the 
+    # config file is in the same directory.  We do this now so that this service
+    # can be installed into CVMFS.  This is a nasty hack that isn't portable in 
+    # the future, but is being done so that we can move forward.  We assume 
+    # OpenStack since that is the current whim at CERN.
+    init_config_directory = "/etc/glideinwms"
+    if not os.path.exists(init_config_directory):
+        init_config_directory = os.path.dirname(os.path.abspath(__file__))
     parser.add_option("-c", "--config-file", dest="config_file", 
-                      default="/etc/glideinwms/glidein-pilot.ini", 
+                      default="%s/glidein-pilot.ini" % init_config_directory, 
                       help="Specify a custom config file")
 
     (options, args) = parser.parse_args()
