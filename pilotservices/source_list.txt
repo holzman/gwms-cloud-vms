@@ -1,0 +1,5 @@
+glideinwms_pilot/
+pilot-launcher
+glideinwms-pilot
+glidein-pilot-ec2.ini
+glidein-pilot-nimbus.ini

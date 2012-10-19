@@ -30,29 +30,19 @@ function setup_rmpmmacros
 function build_source_tarball
 {
     # Build the source tar for rpm_build
-    tar -czvf $BUILD_HOME/glideinwms_pilot.tar.gz \
-        glideinwms_pilot/ \
-        pilot-launcher \
-        glideinwms-pilot
-
+    tar --create --gzip --verbose --files-from=source_list.txt --file=$BUILD_HOME/glideinwms_pilot.tar.gz
     mv $BUILD_HOME/glideinwms_pilot.tar.gz $RPM_TOPDIR/SOURCES
-    cp $BUILD_HOME/glidein-pilot-ec2.ini $RPM_TOPDIR/SOURCES
-    cp $BUILD_HOME/glidein-pilot-nimbus.ini $RPM_TOPDIR/SOURCES
 }
 
 function setup_spec_files
 {
-    cp $BUILD_HOME/rpm_specs/glideinwms-vm-core.spec $RPM_TOPDIR/SPECS/
-    cp $BUILD_HOME/rpm_specs/glideinwms-vm-ec2.spec $RPM_TOPDIR/SPECS/
-    cp $BUILD_HOME/rpm_specs/glideinwms-vm-nimbus.spec $RPM_TOPDIR/SPECS/
+    cp $BUILD_HOME/rpm_specs/glideinwms-vm.spec $RPM_TOPDIR/SPECS/
 }
 
 function build_rpms
 {
     # build the rpm
-    rpmbuild -ba $RPM_TOPDIR/SPECS/glideinwms-vm-core.spec
-    rpmbuild -ba $RPM_TOPDIR/SPECS/glideinwms-vm-ec2.spec
-    rpmbuild -ba $RPM_TOPDIR/SPECS/glideinwms-vm-nimbus.spec
+    rpmbuild -ba $RPM_TOPDIR/SPECS/glideinwms-vm.spec
     mkdir -p $BUILD_HOME/rpms
     cp -r $RPM_TOPDIR/RPMS/* $BUILD_HOME/rpms
 }
