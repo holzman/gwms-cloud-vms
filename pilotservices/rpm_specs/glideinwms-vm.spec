@@ -7,7 +7,7 @@
 %{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
 %endif
 
-Name:               glideinwms-vm-core
+Name:               glideinwms-vm
 Version:            0.1
 Release:            1
 
@@ -20,12 +20,13 @@ BuildArchitectures: noarch
 
 Source0:        glideinwms_pilot.tar.gz
 
+
 # Make sure this package is installed *after* /etc/sudoers is created
 Requires:       sudo
 Requires(post): /sbin/chkconfig
-Requires(pre): /usr/sbin/groupadd
-Requires(pre): /usr/sbin/useradd
-Requires(pre): /bin/chmod
+Requires(pre):  /usr/sbin/groupadd
+Requires(pre):  /usr/sbin/useradd
+Requires(pre):  /bin/chmod
 
 %description
 glideinWMS pilot launcher service
@@ -35,13 +36,56 @@ pilot_launcher.  This script contextualizes a VM to become a glideinWMS worker
 node.  It is responsible for bootstrapping the pilot Condor StartD and shutting 
 down the VM once the pilot exits.
 
+
+###############################################################################
+## Sub-Packages
+###############################################################################
+%package core
+Summary:            The glideinWMS service that contextualizes a VM
+Group:              System Environment/Daemons
+
+%description core
+glideinWMS pilot launcher service
+
+Sets up a service definition in init.d (glideinwms-pilot) that executes
+pilot_launcher.  This script contextualizes a VM to become a glideinWMS worker 
+node.  It is responsible for bootstrapping the pilot Condor StartD and shutting 
+down the VM once the pilot exits.
+
+
+%package ec2
+Summary:            The glideinWMS service that contextualizes a VM
+Group:              System Environment/Daemons
+
+%description ec2
+glideinWMS pilot launcher service
+
+Configures the glideinmws-vm-core package to use the ec2 style of user data 
+retrieval.
+
+
+%package nimbus
+Summary:            The glideinWMS service that contextualizes a VM
+Group:              System Environment/Daemons
+
+%description nimbus
+glideinWMS pilot launcher service
+
+Configures the glideinmws-vm-core package to use the nimbus style of user data 
+retrieval.
+
+
+
 %prep
 %setup -q -n glideinwms_pilot
 
 %build
 #make %{?_smp_mflags}
 
-%pre
+###############################################################################
+## pre section(s)
+###############################################################################
+%pre core
 # Make glidein_pilot group
 getent group glidein_pilot >/dev/null || /usr/sbin/groupadd glidein_pilot
 
@@ -57,6 +101,9 @@ echo "glidein_pilot ALL= NOPASSWD: ALL" >> /etc/sudoers
 # commented out.  Don't want to modify a system security setting in this rpm
 # will add this note to README
 
+###############################################################################
+## install section
+###############################################################################
 %install
 rm -rf $RPM_BUILD_ROOT
 
@@ -78,10 +125,19 @@ install -m 0755 glideinwms-pilot $RPM_BUILD_ROOT/%{_initrddir}/glideinwms-pilot
 install -d $RPM_BUILD_ROOT%{_sbindir}
 install -m 0500 pilot-launcher $RPM_BUILD_ROOT%{_sbindir}/pilot-launcher
 
+# install the ini files
+install -d  $RPM_BUILD_ROOT/%{_sysconfdir}/glideinwms
+install -m 0755 glidein-pilot-nimbus.ini $RPM_BUILD_ROOT/%{_sysconfdir}/glideinwms/glidein-pilot-nimbus.ini
+install -m 0755 glidein-pilot-ec2.ini $RPM_BUILD_ROOT/%{_sysconfdir}/glideinwms/glidein-pilot-ec2.ini
+
+
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-%post
+###############################################################################
+## post section(s)
+###############################################################################
+%post core
 # $1 = 1 - Installation
 # $1 = 2 - Upgrade
 # Source: http://www.ibm.com/developerworks/library/l-rpm2/
@@ -89,7 +145,21 @@ rm -rf $RPM_BUILD_ROOT
 /sbin/chkconfig --add glideinwms-pilot
 /sbin/chkconfig glideinwms-pilot on
 
-%preun
+%post ec2
+
+# create a symbolic link to the file using a common name
+ln -s %{_sysconfdir}/glideinwms/glidein-pilot-ec2.ini %{_sysconfdir}/glideinwms/glidein-pilot.ini
+
+%post nimbus
+
+# install the ini
+ln -s %{_sysconfdir}/glideinwms/glidein-pilot-nimbus.ini %{_sysconfdir}/glideinwms/glidein-pilot.ini
+
+
+###############################################################################
+## preun section(s)
+###############################################################################
+%preun core
 # $1 = 0 - Action is uninstall
 # $1 = 1 - Action is upgrade
 
@@ -102,11 +172,42 @@ if [ "$1" = "0" ] ; then
     rm -rf %{python_sitelib}/glideinwms-pilot
 fi
 
-%files
+%preun ec2
+# $1 = 0 - Action is uninstall
+# $1 = 1 - Action is upgrade
+
+if [ "$1" = "0" ] ; then
+    unlink %{_sysconfdir}/glideinwms/glidein-pilot.ini
+    rm -rf %{_sysconfdir}/glideinwms/glidein-pilot-ec2.ini
+fi
+
+%preun nimbus
+# $1 = 0 - Action is uninstall
+# $1 = 1 - Action is upgrade
+
+if [ "$1" = "0" ] ; then
+    unlink %{_sysconfdir}/glideinwms/glidein-pilot.ini
+    rm -rf %{_sysconfdir}/glideinwms/glidein-pilot-nimbus.ini
+fi
+
+
+###############################################################################
+## files section(s)
+###############################################################################
+%files core
 %defattr(-,root,root,-)
 %attr(755,root,root) %{_sbindir}/pilot-launcher
 %attr(755,root,root) %{_initrddir}/glideinwms-pilot
 %attr(755,root,root) %{python_sitelib}/glideinwms_pilot
+
+%files ec2
+%defattr(-,root,root,-)
+%attr(755,root,root) %config(noreplace) %{_sysconfdir}/glideinwms/glidein-pilot-ec2.ini
+
+%files nimbus
+%defattr(-,root,root,-)
+%attr(755,root,root) %config(noreplace) %{_sysconfdir}/glideinwms/glidein-pilot-nimbus.ini
+
 
 %changelog
 * Mon Sep 04 2012 Anthony Tiradani  0.0.1-1
