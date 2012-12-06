@@ -133,17 +133,20 @@ class Config(object):
             pwd_tuple = pwd.getpwnam(username)
             pw_uid = pwd_tuple[2]
             pw_gid = pwd_tuple[3]
-            ids = user_ids.split(".")
-            if not int(ids[0]) == int(pw_uid):
-                msg = "User specified in configuration present on system, but "\
-                      "the uids don't match. (system uid: %s, configured uid: "\
-                      "%s" % (str(pw_uid), str(ids[0]))
-                raise ConfigError(msg)
-            if not int(ids[1]) == int(pw_gid):
-                msg = "User specified in configuration present on system, but "\
-                      "the gids don't match. (system gid: %s, configured gid: "\
-                      "%s" % (str(pw_gid), str(ids[1]))
-                raise ConfigError(msg)
+            if user_ids:
+                ids = user_ids.split(".")
+                if not int(ids[0]) == int(pw_uid):
+                    msg = "User specified in configuration present on system, but "\
+                          "the uids don't match. (system uid: %s, configured uid: "\
+                          "%s" % (str(pw_uid), str(ids[0]))
+                    raise ConfigError(msg)
+                if not int(ids[1]) == int(pw_gid):
+                    msg = "User specified in configuration present on system, but "\
+                          "the gids don't match. (system gid: %s, configured gid: "\
+                          "%s" % (str(pw_gid), str(ids[1]))
+                    raise ConfigError(msg)
+            else:
+                self.user_ids = "%s.%s" % (str(pw_uid), str(pw_gid))
         except:
             raise ConfigError("User specified in configuration not on system")
 
