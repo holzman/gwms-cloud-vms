@@ -137,9 +137,10 @@ def main():
         disable_shutdown = False
 
     if disable_shutdown:
-        config.log.log_info("shutdown disabled")
+        # No logging is available if the config.setup call errors, so don't try
+        print "shutdown disabled"
     else:
-        config.log.log_info("shutting down")
+        # No logging is available if the config.setup call errors, so don't try
         shutdown_vm()
 
 if __name__ == "__main__":
