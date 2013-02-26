@@ -41,10 +41,18 @@ function setup_spec_files
 
 function build_rpms
 {
-    # build the rpm
-    rpmbuild -ba $RPM_TOPDIR/SPECS/glideinwms-vm.spec
-    mkdir -p $BUILD_HOME/rpms
-    cp -r $RPM_TOPDIR/RPMS/* $BUILD_HOME/rpms
+    # build the srpm
+    #rpmbuild -ba $RPM_TOPDIR/SPECS/glideinwms-vm.spec
+    rpmbuild -bs $RPM_TOPDIR/SPECS/glideinwms-vm.spec
+    # mkdir -p $BUILD_HOME/rpms
+    #cp -r $RPM_TOPDIR/RPMS/* $BUILD_HOME/rpms
+
+    mkdir -p $BUILD_HOME/srpms
+    cp -r $RPM_TOPDIR/SRPMS/* $BUILD_HOME/srpms
+    cd $BUILD_HOME/srpms
+    srpm_to_build=$(ls -pt $BUILD_HOME/srpms | grep -v '/$' | head -1)
+    mock -r epel-6-x86_64 rebuild $srpm_to_build
+    mock -r epel-5-x86_64 rebuild $srpm_to_build
 }
 
 function cleanup
@@ -77,7 +85,7 @@ function main
 
     # cleanup after ourselves
     echo "clean up"
-    cleanup
+    #cleanup
 }
 
 main
