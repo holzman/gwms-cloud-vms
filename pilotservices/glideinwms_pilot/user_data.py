@@ -103,7 +103,7 @@ def extract_user_data(config):
         else:
             # the only thing expected here is a simple ini file containing:
             #
-            # [VM_Properties]
+            # [vm_properties]
             # disable_shutdown = False
 
             fd = open(config.ini_file, 'w')
