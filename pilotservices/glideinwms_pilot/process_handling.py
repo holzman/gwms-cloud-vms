@@ -177,7 +177,7 @@ def wait_children(pids, timeout, log=None):
                 log.log_info(msg)
             try:
                 os.kill(pid, signal.SIGKILL)
-            except OSError, oe:
+            except OSError:
                 # We catch an error because the PID may have already exited.
                 # We don't worry about the PID being recycled because if it is
                 # dead, it is still a zombie.
@@ -185,3 +185,26 @@ def wait_children(pids, timeout, log=None):
             exit_status = os.waitpid(pid, 0)
             result[pid] = exit_status[1]
     return result
+
+def execute_cmd(cmd, timeout, log_writer, args, env):
+    """
+    Executes the specified command while logging output to the specified log
+    writer.
+
+    @param cmd: The executable command to run
+    @param timeout: Timeout for this function; wait_children will not take
+        longer than this (in seconds) to run.
+    @param log_writer: A file-like object which handles writing to the 
+        configured logs
+    @param args: The arguments that will be passed to the command
+    @param env: The environment that the command will run in
+    @returns: The exit status code for the process.
+    """
+    pid = run_child(cmd, log_writer, args=args, env=env)
+    # Wait for the results
+    results = wait_children([pid, ], timeout, log_writer)
+    for pid in results.keys():
+        log_writer.log_info("PID: %s" % str(pid))
+        log_writer.log_info("PID Status: %s" % str(results[pid]))
+
+    return results[pid]

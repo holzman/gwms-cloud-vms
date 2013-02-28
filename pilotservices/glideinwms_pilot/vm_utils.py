@@ -9,8 +9,6 @@ import stat
 import time
 
 from errors import PilotError
-from process_handling import run_child
-from process_handling import wait_children
 
 #### BEGIN DAEMON CODE ####
 
@@ -178,6 +176,15 @@ def ls(directory):
     """
     return os.listdir(directory)
 
+def ls_files(directory):
+    files = [f for f in os.listdir('.') if os.path.isfile(f)]
+    return files
+
+def ls_files_sorted(directory, reverse=False):
+    files = ls_files(directory)
+    files.sort(reverse=reverse)
+    return files
+
 def getuid(username):
     return pwd.getpwnam(username)[2]
 
@@ -193,14 +200,5 @@ def has_permissions(directory, level, perms):
         result = False
         break
     return result
-
-
-def launch_pilot(cmd, timeout, log_writer, args, env):
-    pid = run_child(cmd, log_writer, args=args, env=env)
-    # Wait for the results
-    results = wait_children([pid, ], timeout, log_writer)
-    for pid in results.keys():
-        log_writer.log_info("PID: %s" % str(pid))
-        log_writer.log_info("PID Status: %s" % str(results[pid]))
 
 
