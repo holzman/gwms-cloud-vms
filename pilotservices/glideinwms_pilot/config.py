@@ -75,23 +75,28 @@ class Config(object):
         self.log = Logger(log_writer)
         self.log.log_info("Pilot Launcher started...")
 
-    def export_grid_env(self):
+    def export_custom_env(self):
+        """
+        @returns: string containing the shell (sh, bash, etc) directives to 
+                  export the environment variables
+        """
         environment = ""
         try:
-            for option in self.ini.cp.options("GRID_ENV"):
-                environment += "export %s=%s; " % (str(option).upper(), self.ini.get("GRID_ENV", option))
-
-            environment += "export X509_USER_PROXY=%s;" % self.proxy_file
-
+            env = self.get_custom_env()
+            for option in env:
+                environment += "export %s=%s; " % (option, env[option])
         except:
             # pylint: disable=W0702
             pass
         return environment
 
-    def get_grid_env(self):
+    def get_custom_env(self):
         """
-        Returns a dictionary of the parent process environment plus the "grid"
-        specific environment variables defined in the pilot config file.
+        Returns a dictionary of the parent process environment plus the custom
+        environment variables defined in the pilot config file.
+
+        NOTE: All custom environment variable names will be upper cased.  The 
+              values for the custom environment variables will not be modified.
 
         @returns: dictionary containing the desired process environment
         """
@@ -101,9 +106,9 @@ class Config(object):
             for var in os.environ.keys():
                 environment[var] = os.environ[var]
 
-            # add in the "grid" specific environment
-            for option in self.cp.ini.options("GRID_ENV"):
-                environment[str(option).upper()] = self.ini.get("GRID_ENV", option)
+            # add in the custom environment
+            for option in self.cp.ini.options("CUSTOM_ENVIRONMENT"):
+                environment[str(option).upper()] = self.ini.get("CUSTOM_ENVIRONMENT", option)
 
             environment["X509_USER_PROXY"] = self.proxy_file
 

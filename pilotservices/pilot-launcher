@@ -135,7 +135,7 @@ def main():
             config.log.log_info("Configuring pilot environment...")
             config.log.log_info("    Username: %s" % config.glidein_user)
 
-            pilot_env = config.get_grid_env()
+            pilot_env = config.get_custom_env()
             config.log.log_info("    Environment: %s" % str(pilot_env))
 
             pilot_args = config.pilot_args.split()
@@ -148,8 +148,8 @@ def main():
             glidein_startup = "%s/glidein_startup.sh" % config.home_dir
             config.log.log_info("Launching Pilot (%s)..." % glidein_startup)
             _ = execute_cmd(glidein_startup, 
-                                    float(config.max_lifetime), config.log, 
-                                    pilot_args, pilot_env)
+                            float(config.max_lifetime), config.log, 
+                            pilot_args, pilot_env)
         except PreScriptError, ex:
             message = "An Error has occured: %s" % str(ex)
             config.log.log_err(message)
