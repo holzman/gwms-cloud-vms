@@ -26,8 +26,8 @@ class Config(object):
         self.disable_shutdown = self.ini.getBoolean("DEFAULTS", "disable_shutdown", False)
         self.max_script_runtime = self.ini.getBoolean("DEFAULTS", "max_script_runtime", "60")
 
-        self.pre_script_dir = self.ini.get("DIRECTORIES", "pre_script_dir", "/var/glideinwms_pilot/PRE")
-        self.post_script_dir = self.ini.get("DIRECTORIES", "post_script_dir", "/var/glideinwms_pilot/POST")
+        self.pre_script_dir = self.ini.get("DIRECTORIES", "pre_script_dir", "/usr/libexec/glideinwms_pilot/PRE")
+        self.post_script_dir = self.ini.get("DIRECTORIES", "post_script_dir", "/usr/libexec/glideinwms_pilot/POST")
 
         # home directory is created by the rpm
         self.home_dir = "/home/glidein_pilot"
