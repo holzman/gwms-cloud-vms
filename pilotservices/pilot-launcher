@@ -163,7 +163,7 @@ def main():
 
     try:
         # Always run POST Scripts
-        run_scripts(config.pre_script_dir, config.log, float(config.max_script_runtime))
+        run_scripts(config.post_script_dir, config.log, float(config.max_script_runtime))
     except Exception:
         # We don't care about errors in the POST scripts since the next step 
         # is to shutdown anyway 
