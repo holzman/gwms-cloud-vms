@@ -34,6 +34,9 @@ class UserData(object):
     def ec2_retrieve_user_data(self):
         try:
             user_data_url = self.config.ec2_url
+            # touch the file so that it exists with proper permissions
+            vm_utils.touch(self.config.userdata_file, mode=0600)
+            # Now retrieve userdata into the file
             self.config.userdata_file, _ = urllib.urlretrieve(user_data_url, self.config.userdata_file)
         except Exception, ex:
             raise UserDataError("Error retrieving User Data(context type: EC2): %s\n" % str(ex))
@@ -91,6 +94,7 @@ class GlideinWMSUserData(UserData):
                 tar = glideinwms_tarfile.open(fileobj=temp, mode="r:gz")
                 for tarinfo in tar:
                     tar.extract(tarinfo, self.config.home_dir)
+                    vm_utils.chmod(0400, tarinfo.name)
 
                 # now that the tarball is extracted, we expect to have an x509 proxy
                 # and an ini file waiting for us to use
