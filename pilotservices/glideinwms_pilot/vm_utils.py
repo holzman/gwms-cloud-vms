@@ -69,7 +69,12 @@ def daemonize(pidfile):
 
 #### END DAEMON CODE ####
 
-def shutdown_vm():
+def shutdown_vm(pid_file):
+    # remove the pid file
+    if os.path.exists(pid_file):
+        rm(pid_file)
+
+    # execute the shutdown command
     cmd = "sudo shutdown -h now"
     os.system(cmd)
 
@@ -201,4 +206,5 @@ def has_permissions(directory, level, perms):
         break
     return result
 
-
+def touch(file_path, mode=0600):
+    os.fdopen(os.open(file_path, os.O_WRONLY | os.O_CREAT, mode), 'w').close()
