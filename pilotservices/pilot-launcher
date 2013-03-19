@@ -93,13 +93,17 @@ def main():
                       default="%s/glidein-pilot.ini" % init_config_directory, 
                       help="Specify a custom config file")
 
+    parser.add_option("-p", "--pid-file", dest="pid_file", 
+                      default="/tmp/pilot.pid", help="Specify the pidfile")
+
+
     (options, args) = parser.parse_args()
 
 
     if options.disable_daemon:
         print "disable daemon call"
     else:
-        daemonize("/tmp/pilot.pid")
+        daemonize(options.pid_file)
 
     # If config fails, we need to write error to console if available
     try:
@@ -174,7 +178,7 @@ def main():
         print "shutdown disabled"
     else:
         # No logging is available if the config.setup call errors, so don't try
-        shutdown_vm()
+        shutdown_vm(options.pid_file)
 
 if __name__ == "__main__":
     main()
