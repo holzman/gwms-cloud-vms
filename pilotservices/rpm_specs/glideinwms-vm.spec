@@ -8,8 +8,8 @@
 %endif
 
 Name:               glideinwms-vm
-Version:            0.1
-Release:            1
+Version:            0.2
+Release:            1%{?dist}
 
 Summary:            The glideinWMS service that contextualizes a VM
 Group:              System Environment/Daemons
@@ -18,15 +18,15 @@ URL:                http://www.uscms.org/SoftwareComputing/Grid/WMS/glideinWMS/d
 BuildRoot:          %{_tmppath}/%{name}-buildroot
 BuildArchitectures: noarch
 
-Source0:        glideinwms_pilot.tar.gz
+Source0:            glideinwms_pilot.tar.gz
 
 
 # Make sure this package is installed *after* /etc/sudoers is created
-Requires:       sudo
-Requires(post): /sbin/chkconfig
-Requires(pre):  /usr/sbin/groupadd
-Requires(pre):  /usr/sbin/useradd
-Requires(pre):  /bin/chmod
+Requires:           sudo
+Requires(post):     /sbin/chkconfig
+Requires(pre):      /usr/sbin/groupadd
+Requires(pre):      /usr/sbin/useradd
+Requires(pre):      /bin/chmod
 
 %description
 glideinWMS pilot launcher service
@@ -74,6 +74,15 @@ glideinWMS pilot launcher service
 Configures the glideinmws-vm-core package to use the nimbus style of user data 
 retrieval.
 
+%package test
+Summary:            The glideinWMS service that contextualizes a VM
+Group:              System Environment/Daemons
+
+%description test
+glideinWMS pilot launcher service
+
+Configures the glideinmws-vm-core package to use the ec2 style of user data 
+retrieval. However, VM shutdown is DISABLED.
 
 
 %prep
@@ -86,11 +95,17 @@ retrieval.
 ## pre section(s)
 ###############################################################################
 %pre core
-# Make glidein_pilot group
+
+# Make glidein_pilot group - We do this because we have encoutered at least one
+# OS repo where useradd was configured such that it didn't automatically create
+# a group for the user
 getent group glidein_pilot >/dev/null || /usr/sbin/groupadd glidein_pilot
 
-# Make glidein_pilot group
-getent passwd glidein_pilot >/dev/null || /usr/sbin/useradd -d /home/glidein_pilot -s /bin/bash glidein_pilot
+# get corresponding gid for the glidein_pilot group name
+gid=$(getent group glidein_pilot | cut -d: -f3)
+
+# Make glidein_pilot user
+getent passwd glidein_pilot >/dev/null || /usr/sbin/useradd -d /home/glidein_pilot -g ${gid} -s /bin/bash glidein_pilot
 
 # Add glidein_pilot to sudoers so that it can shutdown the VM without a password 
 /bin/chmod +w /etc/sudoers
@@ -105,7 +120,7 @@ echo "glidein_pilot ALL= NOPASSWD: ALL" >> /etc/sudoers
 ## install section
 ###############################################################################
 %install
-rm -rf $RPM_BUILD_ROOT
+[ ${RPM_BUILD_ROOT} != "/" ] && rm -rf ${RPM_BUILD_ROOT}
 
 # For some reason the setup macro cd's into the glideinwms_pilot directory.
 # We will move up one directory so that we can access all the source files
@@ -118,21 +133,30 @@ install -d $RPM_BUILD_ROOT%{python_sitelib}
 cp -arp glideinwms_pilot $RPM_BUILD_ROOT%{python_sitelib}
 
 # install the init.d
-install -d  $RPM_BUILD_ROOT/%{_initrddir}
-install -m 0755 glideinwms-pilot $RPM_BUILD_ROOT/%{_initrddir}/glideinwms-pilot
+install -d  $RPM_BUILD_ROOT%{_initrddir}
+install -m 0755 glideinwms-pilot $RPM_BUILD_ROOT%{_initrddir}/glideinwms-pilot
 
 # install the "executable"
 install -d $RPM_BUILD_ROOT%{_sbindir}
-install -m 0500 pilot-launcher $RPM_BUILD_ROOT%{_sbindir}/pilot-launcher
+install -m 0755 pilot-launcher $RPM_BUILD_ROOT%{_sbindir}/pilot-launcher
 
 # install the ini files
-install -d  $RPM_BUILD_ROOT/%{_sysconfdir}/glideinwms
-install -m 0755 glidein-pilot-nimbus.ini $RPM_BUILD_ROOT/%{_sysconfdir}/glideinwms/glidein-pilot-nimbus.ini
-install -m 0755 glidein-pilot-ec2.ini $RPM_BUILD_ROOT/%{_sysconfdir}/glideinwms/glidein-pilot-ec2.ini
+install -d  $RPM_BUILD_ROOT%{_sysconfdir}/glideinwms
+install -m 0755 glidein-pilot-nimbus.ini $RPM_BUILD_ROOT%{_sysconfdir}/glideinwms/glidein-pilot-nimbus.ini
+install -m 0755 glidein-pilot-ec2.ini $RPM_BUILD_ROOT%{_sysconfdir}/glideinwms/glidein-pilot-ec2.ini
+install -m 0755 glidein-pilot-test.ini $RPM_BUILD_ROOT%{_sysconfdir}/glideinwms/glidein-pilot-test.ini
+
+# install the PRE and POST script dirs
+install -d  $RPM_BUILD_ROOT%{_libexecdir}/glideinwms_pilot/PRE
+install -d  $RPM_BUILD_ROOT%{_libexecdir}/glideinwms_pilot/POST
+
+# install the ephemeral storage PRE script
+install -m 0755 pre-scripts/mount_ephemeral $RPM_BUILD_ROOT%{_libexecdir}/glideinwms_pilot/PRE/mount_ephemeral
 
 
 %clean
-rm -rf $RPM_BUILD_ROOT
+[ ${RPM_BUILD_ROOT} != "/" ] && rm -rf ${RPM_BUILD_ROOT}
+
 
 ###############################################################################
 ## post section(s)
@@ -154,6 +178,11 @@ ln -s %{_sysconfdir}/glideinwms/glidein-pilot-ec2.ini %{_sysconfdir}/glideinwms/
 
 # install the ini
 ln -s %{_sysconfdir}/glideinwms/glidein-pilot-nimbus.ini %{_sysconfdir}/glideinwms/glidein-pilot.ini
+
+%post test
+
+# install the ini
+ln -s %{_sysconfdir}/glideinwms/glidein-pilot-test.ini %{_sysconfdir}/glideinwms/glidein-pilot.ini
 
 
 ###############################################################################
@@ -190,6 +219,15 @@ if [ "$1" = "0" ] ; then
     rm -rf %{_sysconfdir}/glideinwms/glidein-pilot-nimbus.ini
 fi
 
+%preun test
+# $1 = 0 - Action is uninstall
+# $1 = 1 - Action is upgrade
+
+if [ "$1" = "0" ] ; then
+    unlink %{_sysconfdir}/glideinwms/glidein-pilot.ini
+    rm -rf %{_sysconfdir}/glideinwms/glidein-pilot-test.ini
+fi
+
 
 ###############################################################################
 ## files section(s)
@@ -199,17 +237,28 @@ fi
 %attr(755,root,root) %{_sbindir}/pilot-launcher
 %attr(755,root,root) %{_initrddir}/glideinwms-pilot
 %attr(755,root,root) %{python_sitelib}/glideinwms_pilot
+%attr(755,root,root) %{_libexecdir}/glideinwms_pilot/PRE/mount_ephemeral
+
+# For the moment there are no post scripts but we want to include the post directory anyway
+%dir %{_libexecdir}/glideinwms_pilot/POST
+
 
 %files ec2
 %defattr(-,root,root,-)
-%attr(755,root,root) %config(noreplace) %{_sysconfdir}/glideinwms/glidein-pilot-ec2.ini
+%config %config(noreplace) %{_sysconfdir}/glideinwms/glidein-pilot-ec2.ini
 
 %files nimbus
 %defattr(-,root,root,-)
 %attr(755,root,root) %config(noreplace) %{_sysconfdir}/glideinwms/glidein-pilot-nimbus.ini
 
+%files test
+%defattr(-,root,root,-)
+%attr(755,root,root) %config(noreplace) %{_sysconfdir}/glideinwms/glidein-pilot-test.ini
 
 %changelog
-* Mon Sep 04 2012 Anthony Tiradani  0.0.1-1
+* Mon Sep 04 2012 Anthony Tiradani  0.0.2
+- Added 
+
+* Mon Sep 04 2012 Anthony Tiradani  0.0.1
 - Initial Version
 
