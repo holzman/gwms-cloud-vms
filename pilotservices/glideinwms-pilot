@@ -1,25 +1,108 @@
 #!/bin/sh
+#
+# <daemonname> <summary>
+#
+# chkconfig:   2345 90 10
+# description: Starts the glideinWMS pilot bootstrap service.  The service \
+#              retrieves user-data from the cloud provider, initializes the \
+#              environment for the glideinWMS pilot, and launches the pilot.
+#
+# This script was written to comply with the standards listed here:
+# http://fedoraproject.org/wiki/Packaging:SysVInitScript#Fedora_SysV_Initscripts
 
-#
-# chkconfig: 3 90 99
-# description: glideinwms-pilot
-#
-# Starts the glideinWMS Pilot
-#
+### BEGIN INIT INFO
+# Provides: glideinwms_pilot
+# Required-Start: $local_fs $network $named $time $remote_fs $portmap
+# Required-Stop: $local_fs $network $named $time $remote_fs $portmap
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: start and stop glideinwms_pilot
+# Description: start and stop glideinwms_pilot
+### END INIT INFO
 
-case $1 in
-'start')
-    echo "Starting up glideinwms-pilot"
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+exec="/usr/sbin/pilot-launcher"
+prog="pilot-launcher"
+config="/etc/glideinwms/glidein-pilot.ini"
+pidfile=/var/run/${prog}.pid
+lockfile=/var/lock/subsys/$prog
+
+start() {
+    [ -x $exec ] || exit 5
+    [ -f $config ] || exit 6
+    echo -n $"Starting $prog: "
     ulimit -n 131072
-    /usr/sbin/pilot-launcher
-    ;;
+    # This is a self-daemonizing program
+    /usr/sbin/pilot-launcher -p $pidfile
+    retval=$?
+    echo
+    [ $retval -eq 0 ] && touch $lockfile
+    return $retval
+}
 
-'stop')
-    echo "Not doing anything... we don't care, since the Image will start clean next time"
-    ;;
+stop() {
+    echo -n $"Stopping $prog: "
+    # stop it here, often "killproc $prog"
+    killproc -p $pidfile $prog
+    retval=$?
+    echo
+    [ $retval -eq 0 ] && rm -f $lockfile
+    return $retval
+}
 
-*)
-    echo "Usage: glideinwms-pilot {start|stop}"
-    ;;
+restart() {
+    stop
+    start
+}
 
+reload() {
+    restart
+}
+
+force_reload() {
+    restart
+}
+
+rh_status() {
+    # run checks to determine if the service is running or use generic status
+    status -p $pidfile $prog
+}
+
+rh_status_q() {
+    rh_status >/dev/null 2>&1
+}
+
+
+case "$1" in
+    start)
+        rh_status_q && exit 0
+        $1
+        ;;
+    stop)
+        rh_status_q || exit 0
+        $1
+        ;;
+    restart)
+        $1
+        ;;
+    reload)
+        rh_status_q || exit 7
+        $1
+        ;;
+    force-reload)
+        force_reload
+        ;;
+    status)
+        rh_status
+        ;;
+    condrestart|try-restart)
+        rh_status_q || exit 0
+        restart
+        ;;
+    *)
+        echo $"Usage: $0 {start|stop|status|restart|condrestart|try-restart|reload|force-reload}"
+        exit 2
 esac
+exit $?
