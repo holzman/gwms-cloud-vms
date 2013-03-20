@@ -3,6 +3,8 @@ import ConfigParser
 
 class Ini(object):
     def __init__(self, ini_path):
+        # TODO: Add check here for valid ini_path
+
         self.cp = ConfigParser.ConfigParser()
         self.cp.read(ini_path)
 
@@ -23,9 +25,6 @@ class Ini(object):
         @returns: Value stored in CP for section/option, or default if it is not
             present.
         """
-        if not isinstance(self.cp, ConfigParser.ConfigParser):
-            raise RuntimeError('cp_get called without a proper cp as first arg')
-
         try:
             return self.cp.get(section, option)
         except (ConfigParser.NoSectionError, ConfigParser.NoOptionError):
@@ -47,7 +46,7 @@ class Ini(object):
         @returns: Value stored in CP for section/option, or default if it is not
             present.
         """
-        val = str(self.cp_get(section, option, default)).lower()
+        val = str(self.get(section, option, default)).lower()
         if val.find('t') >= 0 or val.find('y') >= 0 or val.find('1') >= 0:
             return True
         if val.find('f') >= 0 or val.find('n') >= 0 or val.find('0') >= 0:
