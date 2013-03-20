@@ -13,15 +13,12 @@ from glideinwms_pilot.errors import ScriptError
 from glideinwms_pilot.vm_utils import chown
 from glideinwms_pilot.vm_utils import chmod
 from glideinwms_pilot.vm_utils import cd
-from glideinwms_pilot.vm_utils import launch_pilot
 from glideinwms_pilot.vm_utils import drop_privs
 from glideinwms_pilot.vm_utils import shutdown_vm
 from glideinwms_pilot.vm_utils import daemonize
 from glideinwms_pilot.vm_utils import ls_files_sorted
 
-
-from glideinwms_pilot.user_data import retrieve_user_data
-from glideinwms_pilot.user_data import extract_user_data
+from glideinwms_pilot.user_data import GlideinWMSUserData
 
 from glideinwms_pilot.config import Config
 
@@ -109,7 +106,6 @@ def main():
     try:
         config = Config(options.config_file)
         config.setup()
-        disable_shutdown = config.disable_shutdown
 
         try:
             # Change to the working directory
@@ -122,13 +118,10 @@ def main():
             config.log.log_info("Dropping privs to %s" % config.glidein_user)
             drop_privs(config.glidein_user)
 
-            # get the user data - should be a tar file
-            config.log.log_info("Retrieving user data")
-            retrieve_user_data(config)
-
-            # untar the user data
-            config.log.log_info("Extracting user data")
-            extract_user_data(config)
+            # get and extract the user data - should be a tar file
+            config.log.log_info("Retrieving and extracting user data")
+            userdata = GlideinWMSUserData(config)
+            userdata.extract_user_data()
 
             # get the glidein_startup.sh script
             config.log.log_info("Retrieving glidein_startup.sh")
@@ -163,7 +156,7 @@ def main():
         except Exception, ex:
             config.log.log_err("Error launching pilot: %s" % str(ex))
     except ConfigError, ex:
-        disable_shutdown = False
+        config.disable_shutdown = False
 
     try:
         # Always run POST Scripts
@@ -173,7 +166,7 @@ def main():
         # is to shutdown anyway 
         pass
 
-    if disable_shutdown:
+    if config.disable_shutdown:
         # No logging is available if the config.setup call errors, so don't try
         print "shutdown disabled"
     else:
