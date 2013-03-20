@@ -27,9 +27,9 @@ class UserData(object):
     def retrieve(self):
         context_type = self.config.contextualization_type.upper()
         if context_type == CONTEXT_TYPE_EC2:
-            self.ec2_retrieve()
+            self.ec2_retrieve_user_data()
         elif context_type == CONTEXT_TYPE_NIMBUS:
-            self.nimbus_retrieve()
+            self.nimbus_retrieve_user_data()
 
     def ec2_retrieve_user_data(self):
         try:
