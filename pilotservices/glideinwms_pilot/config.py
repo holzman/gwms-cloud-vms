@@ -31,6 +31,7 @@ class Config(object):
 
         # home directory is created by the rpm
         self.home_dir = "/home/glidein_pilot"
+        self.glidein_user = "glidein_pilot"
 
         # glidein_startup.sh specific attributes
         self.factory_url = ""
