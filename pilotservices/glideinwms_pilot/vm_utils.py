@@ -182,7 +182,7 @@ def ls(directory):
     return os.listdir(directory)
 
 def ls_files(directory):
-    files = [f for f in os.listdir('.') if os.path.isfile(f)]
+    files = [f for f in os.listdir(directory) if os.path.isfile("%s/%s" % (directory, f))]
     return files
 
 def ls_files_sorted(directory, reverse=False):
