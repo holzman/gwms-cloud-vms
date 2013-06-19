@@ -245,15 +245,15 @@ fi
 
 %files ec2
 %defattr(-,root,root,-)
-%config %config(noreplace) %{_sysconfdir}/glideinwms/glidein-pilot-ec2.ini
+%attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-ec2.ini
 
 %files nimbus
 %defattr(-,root,root,-)
-%attr(755,root,root) %config(noreplace) %{_sysconfdir}/glideinwms/glidein-pilot-nimbus.ini
+%attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-nimbus.ini
 
 %files test
 %defattr(-,root,root,-)
-%attr(755,root,root) %config(noreplace) %{_sysconfdir}/glideinwms/glidein-pilot-test.ini
+%attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-test.ini
 
 %changelog
 * Mon Sep 04 2012 Anthony Tiradani  0.0.2
