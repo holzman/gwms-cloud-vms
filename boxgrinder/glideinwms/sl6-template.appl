@@ -1,0 +1,59 @@
+name: sl6
+summary: Just Enough Operating System based on sl6
+
+os:
+  name: sl
+  version: 6
+
+hardware:
+  partitions:
+    "/":
+      size: 9
+
+repos:
+  - name: "epel"
+    baseurl: "http://cms-xen35.fnal.gov/repos/osg-epel-deps-experimental"
+
+  - name: "osg"
+    baseurl: "http://cms-xen35.fnal.gov/repos/3.0/el5/osg-release/x86_64"
+
+packages:
+  - @base
+  - autofs
+  - curl
+  - dhclient
+  - fetch-crl
+  - fuse
+  - glideinwms-vm-core
+  - glideinwms-vm-ec2
+  - iputils
+  - libxslt
+  - ntp
+  - openssh
+  - openssh-server
+  - openssh-clients
+  - osg-wn-client
+  - osg-ca-certs
+  - puppet
+  - python
+  - sysklogd
+  - tar
+  - util-linux
+  - vim-enhanced
+  - wget
+  - xterm
+  - xorg-x11-xauth
+  - yum
+  - yum-priorities
+
+files:
+  "/etc/rc.d":
+    - "rc.local"
+
+  "/etc/ssh":
+    - "sshd_config"
+
+post:
+  base:
+    - "chmod +x /etc/rc.d/rc.local"
+    - "chmod +w /etc/sudoers; sed -i 's/Defaults    requiretty/#Defaults    requiretty/g' /etc/sudoers; chmod -w /etc/sudoers"
