@@ -1,4 +1,4 @@
-#	$OpenBSD: sshd_config,v 1.73 2005/12/06 22:38:28 reyk Exp $
+#   $OpenBSD: sshd_config,v 1.73 2005/12/06 22:38:28 reyk Exp $
 
 # This is the sshd server system-wide configuration file.  See
 # sshd_config(5) for more information.
@@ -42,12 +42,12 @@ PermitRootLogin yes
 
 RSAAuthentication yes
 PubkeyAuthentication yes
-#AuthorizedKeysFile	.ssh/authorized_keys
+AuthorizedKeysFile .ssh/authorized_keys
 
 # For this to work you will also need host keys in /etc/ssh/ssh_known_hosts
-#RhostsRSAAuthentication no
+RhostsRSAAuthentication no
 # similar for protocol version 2
-#HostbasedAuthentication no
+HostbasedAuthentication no
 # Change to yes if you don't trust ~/.ssh/known_hosts for
 # RhostsRSAAuthentication and HostbasedAuthentication
 #IgnoreUserKnownHosts no
@@ -83,8 +83,8 @@ GSSAPICleanupCredentials yes
 # "PermitRootLogin without-password". If you just want the PAM account and 
 # session checks to run without PAM authentication, then enable this but set 
 # ChallengeResponseAuthentication=no
-UsePAM no
-#UsePAM yes
+#UsePAM no
+UsePAM yes
 
 # Accept locale-related environment variables
 AcceptEnv LANG LANGUAGE LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES 
@@ -98,23 +98,27 @@ X11Forwarding yes
 #X11UseLocalhost yes
 #PrintMotd yes
 #PrintLastLog yes
-#TCPKeepAlive yes
+TCPKeepAlive yes
 #UseLogin no
-#UsePrivilegeSeparation yes
+UsePrivilegeSeparation yes
 #PermitUserEnvironment no
 #Compression delayed
 #ClientAliveInterval 0
 #ClientAliveCountMax 3
-#ShowPatchLevel no
-#UseDNS yes
+ShowPatchLevel no
+UseDNS no
 #PidFile /var/run/sshd.pid
 #MaxStartups 10
 #PermitTunnel no
 #ChrootDirectory none
 
+#PermitRootLogin without-password
+#AllowUsers root
+#PermitEmptyPasswords no
+
 # no default banner path
 #Banner /some/path
 
 # override default of no subsystems
-Subsystem	sftp	/usr/libexec/openssh/sftp-server
+Subsystem   sftp    /usr/libexec/openssh/sftp-server
 #UseDNS no
