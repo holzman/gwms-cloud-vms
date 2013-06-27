@@ -17,6 +17,7 @@ from glideinwms_pilot.vm_utils import drop_privs
 from glideinwms_pilot.vm_utils import shutdown_vm
 from glideinwms_pilot.vm_utils import daemonize
 from glideinwms_pilot.vm_utils import ls_files_sorted
+from glideinwms_pilot.vm_utils import sleep
 
 from glideinwms_pilot.user_data import GlideinWMSUserData
 
@@ -178,6 +179,8 @@ def main():
     if config.disable_shutdown:
         print "shutdown disabled"
     else:
+        ten_minutes = 600 # seconds
+        sleep(ten_minutes)
         shutdown_vm(options.pid_file)
 
 if __name__ == "__main__":

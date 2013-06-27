@@ -208,3 +208,6 @@ def has_permissions(directory, level, perms):
 
 def touch(file_path, mode=0600):
     os.fdopen(os.open(file_path, os.O_WRONLY | os.O_CREAT, mode), 'w').close()
+
+def sleep(seconds):
+    time.sleep(int(seconds))
