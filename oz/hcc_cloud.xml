@@ -6,7 +6,7 @@
         <version>3</version>
         <arch>x86_64</arch>
         <install type="url">
-            <url>http://ftp1.scientificlinux.org/linux/scientific/6x/x86_64/os/</url>
+            <url>http://ftp.scientificlinux.org/linux/scientific/6x/x86_64/os</url>
             <!-- Note that only a base package installation is done. -->
             <!-- No yum updates are automatically applied. If you -->
             <!-- want updates (and you do! :>), you'll need to have -->
@@ -356,7 +356,7 @@ start_services
     </files>
     <commands>
         <command name='rc-local'>chmod a+x /etc/rc.d/rc.local</command>
-        <command name='install-vdt'>chmod a+x /opt/install-osg.sh; /opt/install-osg.sh</command>
+        <command name='install-osg'>chmod a+x /opt/install-osg.sh; /opt/install-osg.sh</command>
         <command name='yum_update'>yum clean all; yum -y update</command>
     </commands>
 </template>
