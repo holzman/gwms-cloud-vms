@@ -12,10 +12,13 @@ hardware:
 
 repos:
   - name: "epel"
-    baseurl: "http://cms-xen35.fnal.gov/repos/osg-epel-deps-experimental"
+    baseurl: "http://mirror.cc.columbia.edu/pub/linux/epel/6/x86_64/"
 
   - name: "osg"
-    baseurl: "http://cms-xen35.fnal.gov/repos/3.0/el5/osg-release/x86_64"
+    baseurl: "http://repo.grid.iu.edu/3.0/el6/osg-release/x86_64/"
+
+  - name: "glideinwms"
+    baseurl: "http://cms-xen35.fnal.gov/repos/tiradani/6"
 
 packages:
   - @base
@@ -36,9 +39,8 @@ packages:
   - osg-ca-certs
   - puppet
   - python
-  - sysklogd
+  - rsyslog
   - tar
-  - util-linux
   - vim-enhanced
   - wget
   - xterm
