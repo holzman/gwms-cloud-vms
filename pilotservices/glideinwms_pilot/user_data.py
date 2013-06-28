@@ -158,6 +158,9 @@ class GlideinWMSUserData(UserData):
                 if ini.has_option("vm_properties", "disable_shutdown"):
                     self.config.disable_shutdown = smart_bool(ini.get("vm_properties", "disable_shutdown"))
                     self.config.debug = True
+                elif ini.has_option("DEFAULT", "disable_shutdown"):
+                    self.config.disable_shutdown = smart_bool(ini.get("vm_properties", "disable_shutdown"))
+                    self.config.debug = True
                 else:
                     raise UserDataError("Invalid ini file in user data.\nUser data contents:\n%s" % userdata)
 
