@@ -52,3 +52,12 @@ class Ini(object):
         if val.find('f') >= 0 or val.find('n') >= 0 or val.find('0') >= 0:
             return False
         return default
+
+    def dump(self):
+        contents = ""
+        for section in self.cp.sections():
+            contents += "[%s]\n" % section
+            for option in self.cp.options(section):
+                contents += "%-25s : %s\n" % (option, self.cp.get(section, option))
+            contents += "\n"
+        return contents
