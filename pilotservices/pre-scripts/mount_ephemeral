@@ -4,7 +4,7 @@
 # mount_ephemeral  - Attempts to mount ephemeral storage
 #
 
-LOGFILE=/var/log/ephemeral_storage.log
+LOGFILE=ephemeral_storage.log
 VIRTUAL_DISKS="vdb xvdb sda2 sdb sdbc"
 
 echo "Attempting to mount ephemeral storage" | tee $LOGFILE
