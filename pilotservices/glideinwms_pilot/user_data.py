@@ -67,6 +67,7 @@ class GlideinWMSUserData(UserData):
     def __init__(self, config):
         super(GlideinWMSUserData, self).__init__(config)
         self.retrieve()
+        self.template = "GlideinWMSUserData :: %s"
 
     def extract_user_data(self):
         """
@@ -82,6 +83,9 @@ class GlideinWMSUserData(UserData):
             userdata = open(self.config.userdata_file, 'r').read()
 
             if userdata.find(delimiter) > 0:
+                log_msg = "Delimiter found.  Assuming we have been launched from glideinWMS"
+                self.config.log.log_info(self.template % log_msg)
+
                 userdata = userdata.split(delimiter)
                 extra_args = userdata[1]
                 extra_args = extra_args.replace("\\", "")
@@ -101,32 +105,55 @@ class GlideinWMSUserData(UserData):
                 ini = ini_handler.Ini(self.config.ini_file)
 
                 self.config.pilot_args = ini.get("glidein_startup", "args")
+                log_msg = "pilot_args : %s" % self.config.pilot_args
+                self.config.log.log_info(self.template % log_msg)
+
                 self.config.factory_url = ini.get("glidein_startup", "webbase")
+                log_msg = "factory_url : %s" % self.config.factory_url
+                self.config.log.log_info(self.template % log_msg)
+
                 proxy_file_name = ini.get("glidein_startup", "proxy_file_name")
+                log_msg = "proxy_file_name : %s" % proxy_file_name
+                self.config.log.log_info(self.template % log_msg)
+
                 self.config.proxy_file = "%s/%s" % (self.config.home_dir, proxy_file_name)
+                log_msg = "config.proxy_file : %s" % self.config.proxy_file
+                self.config.log.log_info(self.template % log_msg)
+
 
                 # now add the extra args to the main arg list
                 self.config.pilot_args += " %s" % extra_args
+                log_msg = "Full config.pilot_args : %s" % self.config.pilot_args
+                self.config.log.log_info(self.template % log_msg)
 
                 # check to see if the "don't shutdown" flag has been set
                 self.config.disable_shutdown = False
                 if ini.has_option("vm_properties", "disable_shutdown"):
                     self.config.disable_shutdown = smart_bool(ini.get("vm_properties", "disable_shutdown"))
-                if ini.has_option("vm_properties", "home_dir"):
-                    self.config.home_dir = ini.get("vm_properties", "home_dir")
+                    log_msg = "config.disable_shutdown : %s" % self.config.disable_shutdown
+                    self.config.log.log_info(self.template % log_msg)
+
                 if ini.has_option("vm_properties", "max_lifetime"):
                     self.config.max_lifetime = ini.get("vm_properties", "max_lifetime")
+                    log_msg = "config.max_lifetime : %s" % self.config.max_lifetime
+                    self.config.log.log_info(self.template % log_msg)
             else:
                 # the only thing expected here is a simple ini file containing:
                 #
                 # [vm_properties]
                 # disable_shutdown = False
+                log_msg = "Delimiter not found.  Assuming we have been launched manually"
+                self.config.log.log_info(self.template % log_msg)
+
 
                 fd = open(self.config.ini_file, 'w')
                 fd.write(userdata)
                 fd.close()
 
                 ini = ini_handler.Ini(self.config.ini_file)
+                contents = ini.dump()
+                log_msg = "Ini file contents:\n%s" % contents
+                self.config.log.log_info(self.template % log_msg)
 
                 if ini.has_option("vm_properties", "disable_shutdown"):
                     self.config.disable_shutdown = smart_bool(ini.get("vm_properties", "disable_shutdown"))
