@@ -104,18 +104,19 @@ class Config(object):
         @returns: dictionary containing the desired process environment
         """
         environment = {}
-        try:
-            # inherit the parent process environment
-            for var in os.environ.keys():
-                environment[var] = os.environ[var]
+        # inherit the parent process environment
+        for var in os.environ.keys():
+            environment[var] = os.environ[var]
 
+        try:
             # add in the custom environment
             for option in self.cp.ini.options("CUSTOM_ENVIRONMENT"):
                 environment[str(option).upper()] = self.ini.get("CUSTOM_ENVIRONMENT", option)
-
-            environment["X509_USER_PROXY"] = self.proxy_file
-
         except:
             # pylint: disable=W0702
             pass
+
+        # Add in the pilot proxy
+        environment["X509_USER_PROXY"] = self.proxy_file
+
         return environment
