@@ -8,7 +8,7 @@
 %endif
 
 Name:               glideinwms-vm
-Version:            0.2
+Version:            0.3
 Release:            1%{?dist}
 
 Summary:            The glideinWMS service that contextualizes a VM
@@ -256,8 +256,12 @@ fi
 %attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-test.ini
 
 %changelog
-* Mon Sep 04 2012 Anthony Tiradani  0.0.2
-- Added 
+* Mon Jul 01 2013 Anthony Tiradani  0.0.3
+- Fixed typos
+- Fixed get_custom_env function
+
+* Mon Feb 28 2013 Anthony Tiradani  0.0.2
+- Added PRE and POST scripts
 
 * Mon Sep 04 2012 Anthony Tiradani  0.0.1
 - Initial Version
