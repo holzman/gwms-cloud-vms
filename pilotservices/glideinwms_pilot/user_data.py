@@ -1,10 +1,10 @@
 import urllib
-import base64
-import tempfile
 import subprocess
-import glideinwms_tarfile
 import vm_utils
 import ini_handler
+import gzip
+import os
+import base64
 
 from errors import PilotError
 from errors import UserDataError
@@ -72,7 +72,7 @@ class GlideinWMSUserData(UserData):
     def extract_user_data(self):
         """
         The user data has the following format:
-        base64data####extra args
+        pilot ini file####extra args####compressed glidein proxy
         OR
         ini file
         """
@@ -86,42 +86,32 @@ class GlideinWMSUserData(UserData):
                 log_msg = "Delimiter found.  Assuming we have been launched from glideinWMS"
                 self.config.log.log_info(self.template % log_msg)
 
+                # split userdata into usable chunks
                 userdata = userdata.split(delimiter)
-                extra_args = userdata[1]
-                extra_args = extra_args.replace("\\", "")
 
-                # handle the tarball
-                tardata = base64.b64decode(userdata[0])
-                temp = tempfile.TemporaryFile()
-                temp.write(tardata)
-                temp.seek(0)
-                tar = glideinwms_tarfile.open(fileobj=temp, mode="r:gz")
-                for tarinfo in tar:
-                    tar.extract(tarinfo, self.config.home_dir)
-                    vm_utils.chmod(0400, tarinfo.name)
+                # get and process the pilot ini file
+                pilot_ini = base64.b64decode(userdata[0])
+                ini_fd = open(self.config.ini_file, 'w')
+                ini_fd.write(pilot_ini)
+                ini_fd.close()
 
-                # now that the tarball is extracted, we expect to have an x509 proxy
-                # and an ini file waiting for us to use
                 ini = ini_handler.Ini(self.config.ini_file)
 
+                # get the initial set of arguments for the glidein_startup.sh script
                 self.config.pilot_args = ini.get("glidein_startup", "args")
                 log_msg = "pilot_args : %s" % self.config.pilot_args
                 self.config.log.log_info(self.template % log_msg)
 
+                # set the factory location so that we can download glidein_startup.sh
                 self.config.factory_url = ini.get("glidein_startup", "webbase")
                 log_msg = "factory_url : %s" % self.config.factory_url
                 self.config.log.log_info(self.template % log_msg)
 
-                proxy_file_name = ini.get("glidein_startup", "proxy_file_name")
-                log_msg = "proxy_file_name : %s" % proxy_file_name
-                self.config.log.log_info(self.template % log_msg)
+                # now get and add the extra args to the main arg list
+                extra_args = userdata[1]
+                extra_args = extra_args.replace("\\", "")
 
-                self.config.proxy_file = "%s/%s" % (self.config.home_dir, proxy_file_name)
-                log_msg = "config.proxy_file : %s" % self.config.proxy_file
-                self.config.log.log_info(self.template % log_msg)
-
-
-                # now add the extra args to the main arg list
+                # add the extra arguments to the arg list for glidein_startup.sh
                 self.config.pilot_args += " %s" % extra_args
                 log_msg = "Full config.pilot_args : %s" % self.config.pilot_args
                 self.config.log.log_info(self.template % log_msg)
@@ -133,10 +123,42 @@ class GlideinWMSUserData(UserData):
                     log_msg = "config.disable_shutdown : %s" % self.config.disable_shutdown
                     self.config.log.log_info(self.template % log_msg)
 
+                # set the max_lifetime if available
                 if ini.has_option("vm_properties", "max_lifetime"):
                     self.config.max_lifetime = ini.get("vm_properties", "max_lifetime")
                     log_msg = "config.max_lifetime : %s" % self.config.max_lifetime
                     self.config.log.log_info(self.template % log_msg)
+
+                # get the proxy file name from the ini file
+                proxy_file_name = ini.get("glidein_startup", "proxy_file_name")
+                log_msg = "proxy_file_name : %s" % proxy_file_name
+                self.config.log.log_info(self.template % log_msg)
+
+                # set the full path to the proxy.  The proxy will be written to this path
+                self.config.proxy_file = "%s/%s" % (self.config.home_dir, proxy_file_name)
+                log_msg = "config.proxy_file : %s" % self.config.proxy_file
+                self.config.log.log_info(self.template % log_msg)
+
+                # get the compressed proxy and write it to a tmp file
+                # yes, the tmp file name is completely predictable, but this isn't
+                # an interactive node and the lifetime of the node is very short
+                # so the risk of attack on this vector is minimal
+                compressed_proxy = base64.b64decode(userdata[2])
+                fd = os.open("%s.tmp" % self.config.proxy_file, os.O_CREAT|os.O_WRONLY, 0600)
+                try:
+                    os.write(fd, compressed_proxy)
+                finally:
+                    os.close(fd)
+
+                proxy_fd = gzip.open("%s.tmp" % self.config.proxy_file, 'rb')
+                proxy_content = proxy_fd.read()
+                proxy_fd.close()
+
+                fd = os.open(self.config.proxy_file, os.O_CREAT|os.O_WRONLY, 0600)
+                try:
+                    os.write(fd, proxy_content)
+                finally:
+                    os.close(fd)
             else:
                 # the only thing expected here is a simple ini file containing:
                 #
