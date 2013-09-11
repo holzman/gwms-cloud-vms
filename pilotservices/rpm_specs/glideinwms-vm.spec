@@ -64,6 +64,17 @@ Configures the glideinmws-vm-core package to use the ec2 style of user data
 retrieval.
 
 
+%package one
+Summary:            The glideinWMS service that contextualizes a VM
+Group:              System Environment/Daemons
+
+%description one
+glideinWMS pilot launcher service
+
+Configures the glideinmws-vm-core package to use the opennebula style of
+user data retrieval.
+
+
 %package nimbus
 Summary:            The glideinWMS service that contextualizes a VM
 Group:              System Environment/Daemons
@@ -144,6 +155,7 @@ install -m 0755 pilot-launcher $RPM_BUILD_ROOT%{_sbindir}/pilot-launcher
 install -d  $RPM_BUILD_ROOT%{_sysconfdir}/glideinwms
 install -m 0755 glidein-pilot-nimbus.ini $RPM_BUILD_ROOT%{_sysconfdir}/glideinwms/glidein-pilot-nimbus.ini
 install -m 0755 glidein-pilot-ec2.ini $RPM_BUILD_ROOT%{_sysconfdir}/glideinwms/glidein-pilot-ec2.ini
+install -m 0755 glidein-pilot-one.ini $RPM_BUILD_ROOT%{_sysconfdir}/glideinwms/glidein-pilot-one.ini
 install -m 0755 glidein-pilot-test.ini $RPM_BUILD_ROOT%{_sysconfdir}/glideinwms/glidein-pilot-test.ini
 
 # install the PRE and POST script dirs
@@ -173,6 +185,11 @@ install -m 0755 pre-scripts/mount_ephemeral $RPM_BUILD_ROOT%{_libexecdir}/glidei
 
 # create a symbolic link to the file using a common name
 ln -s %{_sysconfdir}/glideinwms/glidein-pilot-ec2.ini %{_sysconfdir}/glideinwms/glidein-pilot.ini
+
+%post one
+
+# create a symbolic link to the file using a common name
+ln -s %{_sysconfdir}/glideinwms/glidein-pilot-one.ini %{_sysconfdir}/glideinwms/glidein-pilot.ini
 
 %post nimbus
 
@@ -208,6 +225,15 @@ fi
 if [ "$1" = "0" ] ; then
     unlink %{_sysconfdir}/glideinwms/glidein-pilot.ini
     rm -rf %{_sysconfdir}/glideinwms/glidein-pilot-ec2.ini
+fi
+
+%preun one
+# $1 = 0 - Action is uninstall
+# $1 = 1 - Action is upgrade
+
+if [ "$1" = "0" ] ; then
+    unlink %{_sysconfdir}/glideinwms/glidein-pilot.ini
+    rm -rf %{_sysconfdir}/glideinwms/glidein-pilot-one.ini
 fi
 
 %preun nimbus

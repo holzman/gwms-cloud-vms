@@ -5,12 +5,16 @@ import subprocess
 import glideinwms_tarfile
 import vm_utils
 import ini_handler
+import platform
+import string
+import re
 
 from errors import PilotError
 from errors import UserDataError
 
 from contextualization_types import CONTEXT_TYPE_EC2
 from contextualization_types import CONTEXT_TYPE_NIMBUS
+from contextualization_types import CONTEXT_TYPE_OPENNEBULA
 
 def smart_bool(s):
     if s is True or s is False:
@@ -18,6 +22,48 @@ def smart_bool(s):
 
     s = str(s).strip().lower()
     return not s in ['false', 'f', 'n', '0', '']
+
+
+def opennebula_context_disk():
+    context_disk = "/dev/sr0"
+    distname_pattern = [
+        'red hat*',
+        'redhat*',
+        'scientific linux*',
+        'centos*',
+    ]
+
+    version_map = {
+        '5': '/dev/hdc',
+        '6': '/dev/sr0',
+        '7': '/dev/sr0',
+    }
+
+    try:
+        distro = platform.linux_distribution()
+    except:
+        distro = platform.dist()
+
+    regex = "(" + ")|(".join(distname_pattern) + ")"
+    if re.match(regex, distro[0].lower()):
+        context_disk = version_map.get(distro[1][0], context_disk)
+
+    return context_disk
+
+
+def one_ec2_user_data(contextfile):
+    ec2_user_data = ''
+    try:
+        fd = open(contextfile, 'r')
+        for line in fd.readlines():
+            if line.startswith('EC2_USER_DATA='):
+                ec2_user_data = line[(line.find('=')+1):].strip()
+                break
+    finally:
+        if fd:
+            fd.close()
+
+    return ec2_user_data
 
 
 class UserData(object):
@@ -41,16 +87,21 @@ class UserData(object):
         except Exception, ex:
             raise UserDataError("Error retrieving User Data(context type: EC2): %s\n" % str(ex))
 
-    def fermi_one_retrieve_user_data(self):
+    def one_retrieve_user_data(self):
         try:
             # Mount cdrom drive... OpenNebula contextualization unmounts it
-            mount_cmd = ["mount", "-t", "iso9660", "/dev/hdc", "/mnt"]
+            mount_cmd = ["mount", "-t", "iso9660", opennebula_context_disk(), "/mnt"]
             subprocess.call(mount_cmd)
 
             # copy the OpenNebula userdata file
-            vm_utils.cp(self.config.one_user_data_file, self.config.userdata_file)
+            fd = open(self.config.userdata_file, 'w')
+            fd.write(one_ec2_user_data(self.config.one_user_data_file))
+            fd.close()
+            #vm_utils.cp(self.config.one_user_data_file, self.config.userdata_file)
+            umount_cmd = ["umount", "/mnt"]
+            subprocess.call(umount_cmd)
         except Exception, ex:
-            raise UserDataError("Error retrieving User Data (context type: FERMI-ONE): %s\n" % str(ex))
+            raise UserDataError("Error retrieving User Data (context type: OPENNEBULA): %s\n" % str(ex))
 
     def nimbus_retrieve_user_data(self):
         try:
@@ -62,6 +113,7 @@ class UserData(object):
             raise UserDataError("Could not open Nimbus meta-data url file (context type: NIMBUS): %s\n" % str(ex))
         except Exception, ex:
             raise UserDataError("Error retrieving User Data (context type: NIMBUS): %s\n" % str(ex))
+
 
 class GlideinWMSUserData(UserData):
     def __init__(self, config):
