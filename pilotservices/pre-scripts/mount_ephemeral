@@ -4,16 +4,16 @@
 # mount_ephemeral  - Attempts to mount ephemeral storage
 #
 
-LOGFILE=/var/log/ephemeral_storage.log
-VIRTUAL_DISKS="vdb xvdb sda2 sdb"
+LOGFILE=ephemeral_storage.log
+VIRTUAL_DISKS="vdb xvdb sda2 sdb sdbc"
 
 echo "Attempting to mount ephemeral storage" | tee $LOGFILE
 
 for VD in $VIRTUAL_DISKS ; do
     echo "Checking /dev/$VD ..." | tee $LOGFILE
+    d=`date`
     fdisk -l /dev/$VD 2>/dev/null | grep Disk >> $LOGFILE
     if [ $? -eq 0 ]; then
-        d=`date`
         echo "Virtual disk seen at /dev/$VD: $d" | tee $LOGFILE
         #echo "Creating filesystem..." | tee $LOGFILE
         #mkfs.ext3 -F -L home /dev/$VD | tee $LOGFILE
@@ -23,13 +23,13 @@ for VD in $VIRTUAL_DISKS ; do
         mkdir -v /home  2>&1 | tee $LOGFILE
         mount -t ext3 /dev/$VD /home 2>&1 | tee $LOGFILE
         cp -avr /home.orig/* /home 2>&1 | tee $LOGFILE
+
         d=`date`
         echo "Done with /dev/$VD: $d" | tee $LOGFILE
         break
     else
         echo "No virtual disk seen at /dev/$VD: $d" | tee $LOGFILE
     fi
-    echo "For disk /dev/$VD, nope..." | tee $LOGFILE
 done
 d=`date`
 echo "Done: $d" | tee $LOGFILE

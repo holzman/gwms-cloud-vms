@@ -42,10 +42,7 @@ function setup_spec_files
 function build_rpms
 {
     # build the srpm
-    #rpmbuild -ba $RPM_TOPDIR/SPECS/glideinwms-vm.spec
     rpmbuild -bs $RPM_TOPDIR/SPECS/glideinwms-vm.spec
-    # mkdir -p $BUILD_HOME/rpms
-    #cp -r $RPM_TOPDIR/RPMS/* $BUILD_HOME/rpms
 
     mkdir -p $BUILD_HOME/srpms
     cp -r $RPM_TOPDIR/SRPMS/* $BUILD_HOME/srpms

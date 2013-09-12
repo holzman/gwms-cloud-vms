@@ -17,7 +17,7 @@
 [Base64 encoded blob]####[additional arguments]
 ```
 
- or just a plaintext ini file.
+ or just a plain text ini file.
 
 
  "####" was picked as a separator because it will never appear in the base64 
@@ -47,46 +47,14 @@ disable_shutdown = True
  I am using [BoxGrinder](http://boxgrinder.org/) to automate VM builds.  It is a
  tool that really has no comparison IMHO.  All related files are in the 
  boxgrinder directory.  The current BoxGrinder template (and only one 
- "guaranteed" to work at this time) is hcc-template.appl.  NOTE: you need to
- include a line that comments out the "requiretty" line in /etc/sudoers so that
- the pilot service can execute privileged commands via sudo.
+ "guaranteed" to work at this time) is hcc-template.appl.
 
- As of version 10.4, BoxGrinder has a couple of fatal bugs in it that will 
- prevent you from using the EC2 and S3 plugins to automatically build and push to
- Amazon.  The boxgrinder/patches directory contains several patches that fix 
- them.  John Hover from BNL kindly supplied these patches.
+ I am also trying to get RedHat's other VM image creation tool, [OZ](https://github.com/clalancette/oz/wiki), 
+ to work.The template that I am working with can be found in the oz directory.
+ 
+ NOTE: you need to include a line that comments out the "requiretty" line in 
+ /etc/sudoers so that the pilot service can execute privileged commands via sudo.
 
- To use boxginder's plugins you have to configure them in ~/.boxgrinder/config.
- The following is an example of the config I use (minus the credential 
- information of course).  Fill in the appropriate information for your setup.
 
-```yaml
-plugins:
-  sl:
-    format: raw      # Disk format to use. Default: raw.
 
-  s3:
-    access_key: <REDACTED>                                          # (required)
-    secret_access_key: <REDACTED>                                   # (required)
-    bucket: <Bucket Name>                                           # (required)
-    account_number: XXXX-XXXX-XXXX                                  # (required)
-    path: /                                                         # default: /
-    cert_file: /path/to/cert-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX.pem   # required only for ami type
-    key_file: /path/to/pk-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX.pem      # required only for ami type
-    region: us-east-1                                               # amazon region to upload and register amis in; default: us-east-1
-    snapshot: false                                                 # default: false
-    overwrite: false                                                # default: false
-    block-device-mapping: /dev/sdb=ephemeral0
-```
-
- The actual command to run is:
-
-```bash
-boxgrinder-build hcc-template.appl --debug --trace -p ec2 -d ami
-```
-
- If you have configured everything correctly and there are no build errors, you 
- will have an AMI uploaded, registered and ready to use in EC2.
-
- The VM will expect one of the following data formats in the user data:
 

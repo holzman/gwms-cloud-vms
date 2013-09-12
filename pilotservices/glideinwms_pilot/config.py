@@ -22,16 +22,17 @@ class Config(object):
 
         self.ini = ini_handler.Ini(config_ini)
 
-        self.default_max_lifetime = self.ini.get("DEFAULTS", "default_max_lifetime", "172800") # 48 hours
+        self.default_max_lifetime = self.ini.get("DEFAULT", "default_max_lifetime", "172800") # 48 hours
         self.max_lifetime = self.default_max_lifetime  # can be overridden
-        self.disable_shutdown = self.ini.getBoolean("DEFAULTS", "disable_shutdown", False)
-        self.max_script_runtime = self.ini.getBoolean("DEFAULTS", "max_script_runtime", "60")
+        self.disable_shutdown = self.ini.getBoolean("DEFAULT", "disable_shutdown", False)
+        self.max_script_runtime = self.ini.getBoolean("DEFAULT", "max_script_runtime", "60")
 
         self.pre_script_dir = self.ini.get("DIRECTORIES", "pre_script_dir", "/usr/libexec/glideinwms_pilot/PRE")
         self.post_script_dir = self.ini.get("DIRECTORIES", "post_script_dir", "/usr/libexec/glideinwms_pilot/POST")
 
         # home directory is created by the rpm
         self.home_dir = "/home/glidein_pilot"
+        self.glidein_user = "glidein_pilot"
 
         # glidein_startup.sh specific attributes
         self.factory_url = ""
@@ -47,14 +48,16 @@ class Config(object):
     def setup_pilot_files(self):
         self.ini_file = "%s/glidein_userdata" % self.home_dir
         self.userdata_file = "%s/userdata_file" % self.home_dir
+        self.log.log_info("Default ini file: %s" % self.ini_file)
+        self.log.log_info("Default userdata file: %s" % self.userdata_file)
 
     def setup_contextualization(self):
-        self.contextualization_type = self.ini.get("DEFAULTS", "contextualize_protocol")
+        self.contextualization_type = self.ini.get("DEFAULT", "contextualize_protocol")
         if self.contextualization_type in Config.valid_context_types:
             if self.contextualization_type == CONTEXT_TYPE_EC2:
-                self.ec2_url = self.ini.get("DEFAULTS", "ec2_url")
+                self.ec2_url = self.ini.get("DEFAULT", "ec2_url")
             elif self.contextualization_type == CONTEXT_TYPE_NIMBUS:
-                self.nimbus_url_file = self.ini.get("DEFAULTS", "nimbus_url_file")
+                self.nimbus_url_file = self.ini.get("DEFAULT", "nimbus_url_file")
             elif self.contextualization_type == CONTEXT_TYPE_OPENNEBULA:
                 self.config.one_user_data_file = self.ini.get("DEFAULTS", "one_user_data_file")
         else:
@@ -62,14 +65,14 @@ class Config(object):
 
     def setup_logging(self):
         log_writer = None
-        log_writer_class = self.ini.get("DEFAULTS", "logger_class", None)
+        log_writer_class = self.ini.get("DEFAULT", "logger_class", None)
         if log_writer_class:
             if log_writer_class == "SyslogWriter":
-                facility = self.ini.get("DEFAULTS", "syslog_facility", None)
-                priority = self.ini.get("DEFAULTS", "syslog_priority", None)
+                facility = self.ini.get("DEFAULT", "syslog_facility", None)
+                priority = self.ini.get("DEFAULT", "syslog_priority", None)
                 log_writer = SyslogWriter(facility=facility, priority=priority)
             elif log_writer_class == "ConsoleWriter":
-                output = self.ini.get("DEFAULTS", "console_output", "stdout")
+                output = self.ini.get("DEFAULT", "console_output", "stdout")
                 log_writer = ConsoleWriter(output=output)
             else:
                 log_writer = FileWriter(self.home_dir)
@@ -104,18 +107,19 @@ class Config(object):
         @returns: dictionary containing the desired process environment
         """
         environment = {}
-        try:
-            # inherit the parent process environment
-            for var in os.environ.keys():
-                environment[var] = os.environ[var]
+        # inherit the parent process environment
+        for var in os.environ.keys():
+            environment[var] = os.environ[var]
 
+        try:
             # add in the custom environment
             for option in self.cp.ini.options("CUSTOM_ENVIRONMENT"):
                 environment[str(option).upper()] = self.ini.get("CUSTOM_ENVIRONMENT", option)
-
-            environment["X509_USER_PROXY"] = self.proxy_file
-
         except:
             # pylint: disable=W0702
             pass
+
+        # Add in the pilot proxy
+        environment["X509_USER_PROXY"] = self.proxy_file
+
         return environment

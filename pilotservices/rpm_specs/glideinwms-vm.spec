@@ -8,8 +8,8 @@
 %endif
 
 Name:               glideinwms-vm
-Version:            0.2
-Release:            1%{?dist}
+Version:            0.3
+Release:            2%{?dist}
 
 Summary:            The glideinWMS service that contextualizes a VM
 Group:              System Environment/Daemons
@@ -271,20 +271,27 @@ fi
 
 %files ec2
 %defattr(-,root,root,-)
-%config %config(noreplace) %{_sysconfdir}/glideinwms/glidein-pilot-ec2.ini
+%attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-ec2.ini
 
 %files nimbus
 %defattr(-,root,root,-)
-%attr(755,root,root) %config(noreplace) %{_sysconfdir}/glideinwms/glidein-pilot-nimbus.ini
+%attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-nimbus.ini
 
 %files test
 %defattr(-,root,root,-)
-%attr(755,root,root) %config(noreplace) %{_sysconfdir}/glideinwms/glidein-pilot-test.ini
+%attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-test.ini
 
 %changelog
-* Mon Sep 04 2012 Anthony Tiradani  0.0.2
-- Added 
+* Mon Jul 12 2013 Anthony Tiradani  0.3.2
+- Changed the format of expected user data
 
-* Mon Sep 04 2012 Anthony Tiradani  0.0.1
+* Mon Jul 01 2013 Anthony Tiradani  0.3.1
+- Fixed typos
+- Fixed get_custom_env function
+
+* Mon Feb 28 2013 Anthony Tiradani  0.2.1
+- Added PRE and POST scripts
+
+* Mon Sep 04 2012 Anthony Tiradani  0.1.1
 - Initial Version
 

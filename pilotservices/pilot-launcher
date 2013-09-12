@@ -13,24 +13,23 @@ from glideinwms_pilot.errors import ScriptError
 from glideinwms_pilot.vm_utils import chown
 from glideinwms_pilot.vm_utils import chmod
 from glideinwms_pilot.vm_utils import cd
-from glideinwms_pilot.vm_utils import launch_pilot
 from glideinwms_pilot.vm_utils import drop_privs
 from glideinwms_pilot.vm_utils import shutdown_vm
 from glideinwms_pilot.vm_utils import daemonize
 from glideinwms_pilot.vm_utils import ls_files_sorted
+from glideinwms_pilot.vm_utils import sleep
 
-
-from glideinwms_pilot.user_data import retrieve_user_data
-from glideinwms_pilot.user_data import extract_user_data
+from glideinwms_pilot.user_data import GlideinWMSUserData
 
 from glideinwms_pilot.config import Config
+
+from glideinwms_pilot.process_handling import execute_cmd
 
 def retrieve_glidein_startup(config):
     try:
         url = "%s/glidein_startup.sh" % config.factory_url
         script = "%s/glidein_startup.sh" % config.home_dir
         script, _ = urllib.urlretrieve(url, script)
-        chown(config.user_ids, script)
     except Exception, ex:
         raise PilotError("Error retrieving glidein_startup.sh: %s\n" % str(ex))
 
@@ -43,35 +42,38 @@ def run_scripts(directory, log_writer, max_script_runtime=60, arguments=None):
 
     for script in script_list:
         try:
-            exit_code = execute_cmd(script, max_script_runtime, log_writer, arguments, os.environ)
+            cmd = "%s/%s" % (directory, script)
+            exit_code = execute_cmd(cmd, max_script_runtime, log_writer, 
+                                    arguments, os.environ)
         except Exception, e:
-            message = "An Error has occured attempting to run script: %s\n\nError: %s" % (cmd, str(e))
-            raise ScriptError(message)
+            message = "An Error has occured attempting to run script: %s" \
+                      "\n\nError: %s" % (cmd, str(e))
+            log_writer.log_err(message)
 
-        if not int(exit_code) == 0:
-            message = "A PRE script (%s) has exited with an error. \nExit Code: %s" % (cmd, str(e))
-            raise ScriptError(message)
-
-def handler_max_lifetime(signum, frame): # pylint: disable=W0613
-    raise TimeoutError("Max lifetime has been exceeded, shutting down...")
+        # have to mod 256 because on some systems, instead of returning 0 on
+        # success, 256 is returned
+        if not int(exit_code) % 256 == 0:
+            message = "A PRE script (%s) has exited with an error. \nExit " \
+                      "Code: %s" % (cmd, str(exit_code))
+            log_writer.log_err(message)
 
 def main():
     """
-        Perform all the work necessary to launch a glideinWMS pilot which will
-        attempt to connect back to the user pool.
+    Perform all the work necessary to launch a glideinWMS pilot which will
+    attempt to connect back to the user pool.
 
-        1)  daemonize this script.  This script is lauched via the *nix service
-            mechanisms.  We don't want to make it wait forever and we don't
-            want it to be attached to a console.
-        2)  Get the user data that was passed to the AMI - Currently it is a
-            tarball.
-        3)  untar the tarball.  The tarball will contain a proxy, the
-            glidein_startup.sh script and an ini file containing all the extra
-            information needed
-        4)  read the ini file
-        5)  get the arguments for the glidein_startup.sh script
-        6)  create an environment string to pass with final command
-        7)  launch the glidein pilot with the appropriate environment
+    1)  daemonize this script.  This script is lauched via the *nix service
+        mechanisms.  We don't want to make it wait forever and we don't
+        want it to be attached to a console.
+    2)  Get the user data that was passed to the AMI - Currently it is a
+        tarball.
+    3)  untar the tarball.  The tarball will contain a proxy, the
+        glidein_startup.sh script and an ini file containing all the extra
+        information needed
+    4)  read the ini file
+    5)  get the arguments for the glidein_startup.sh script
+    6)  create an environment string to pass with final command
+    7)  launch the glidein pilot with the appropriate environment
     """
 
     usage = "usage: %prog [options] [Site FQDN]"
@@ -109,26 +111,23 @@ def main():
     try:
         config = Config(options.config_file)
         config.setup()
-        disable_shutdown = config.disable_shutdown
 
         try:
             # Change to the working directory
             cd(config.home_dir)
 
             # Run PRE scripts here
-            run_scripts(config.pre_script_dir, config.log, float(config.max_script_runtime))
+            run_scripts(config.pre_script_dir, config.log, 
+                        float(config.max_script_runtime))
 
             # drop privileges to the glidein user
             config.log.log_info("Dropping privs to %s" % config.glidein_user)
             drop_privs(config.glidein_user)
 
-            # get the user data - should be a tar file
-            config.log.log_info("Retrieving user data")
-            retrieve_user_data(config)
-
-            # untar the user data
-            config.log.log_info("Extracting user data")
-            extract_user_data(config)
+            # get and extract the user data - should be a tar file
+            config.log.log_info("Retrieving and extracting user data")
+            userdata = GlideinWMSUserData(config)
+            userdata.extract_user_data()
 
             # get the glidein_startup.sh script
             config.log.log_info("Retrieving glidein_startup.sh")
@@ -154,7 +153,7 @@ def main():
             _ = execute_cmd(glidein_startup, 
                             float(config.max_lifetime), config.log, 
                             pilot_args, pilot_env)
-        except PreScriptError, ex:
+        except ScriptError, ex:
             message = "An Error has occured: %s" % str(ex)
             config.log.log_err(message)
         except PilotError, ex:
@@ -163,21 +162,22 @@ def main():
         except Exception, ex:
             config.log.log_err("Error launching pilot: %s" % str(ex))
     except ConfigError, ex:
-        disable_shutdown = False
+        config.disable_shutdown = False
 
     try:
         # Always run POST Scripts
-        run_scripts(config.post_script_dir, config.log, float(config.max_script_runtime))
-    except Exception:
-        # We don't care about errors in the POST scripts since the next step 
-        # is to shutdown anyway 
-        pass
+        run_scripts(config.post_script_dir, config.log, 
+                    float(config.max_script_runtime))
+    except ScriptError, ex:
+        message = "An Error has occured: %s" % str(ex)
+        config.log.log_err(message)
 
-    if disable_shutdown:
-        # No logging is available if the config.setup call errors, so don't try
+    # No logging is available if the config.setup call errors, so don't try
+    if config.disable_shutdown:
         print "shutdown disabled"
     else:
-        # No logging is available if the config.setup call errors, so don't try
+        ten_minutes = 600 # seconds
+        sleep(ten_minutes)
         shutdown_vm(options.pid_file)
 
 if __name__ == "__main__":

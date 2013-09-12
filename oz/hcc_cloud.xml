@@ -1,0 +1,362 @@
+<template>
+    <name>HCC_Cloud</name>
+    <description>Cloud image built with HCC specifications</description>
+    <os>
+        <name>ScientificLinux-6</name>
+        <version>3</version>
+        <arch>x86_64</arch>
+        <install type="url">
+            <url>http://ftp.scientificlinux.org/linux/scientific/6x/x86_64/os</url>
+            <!-- Note that only a base package installation is done. -->
+            <!-- No yum updates are automatically applied. If you -->
+            <!-- want updates (and you do! :>), you'll need to have -->
+            <!-- a "yum update -y" in the command list below. -->
+        </install>
+
+        <!-- The password for the root user. You can use this to -->
+        <!-- log in remotely if desired. -->
+        <rootpw>p@ssw0rd</rootpw>
+
+    </os>
+    <repositories>
+        <repository name="tiradani">
+            <url>http://cms-xen35.fnal.gov/repos/tiradani/6/</url>
+        </repository>
+    </repositories>
+
+    <!-- After the main OS has been installed, the packages below are installed -->
+    <!-- in a separate step. It takes into account the repositories in -->
+    <!-- /etc/yum.repos.d/, unlike the base OS installation which doesn't. -->
+
+    <packages>
+        <package name="autofs"/>
+        <package name="curl"/>
+        <package name="dhclient"/>
+        <package name="fuse"/>
+        <package name="iputils"/>
+        <package name="krb5-libs"/>
+        <package name="krb5-workstation"/>
+        <package name="libxslt"/>
+        <package name="ntp"/>
+        <package name="openssh"/>
+        <package name="openssh-server"/>
+        <package name="openssh-clients"/>
+        <package name="python"/>
+        <package name="sysklogd"/>
+        <package name="tar"/>
+        <package name="util-linux"/>
+        <package name="vim-enhanced"/>
+        <package name="wget"/>
+        <package name="xorg-x11-xauth"/>
+        <package name="xterm"/>
+        <package name="yum"/>
+    </packages>
+
+    <!--  List of files that are created in the stanzas below
+        /etc/rc.d/rc.local
+        /etc/ssh/sshd_config
+        /opt/install-osg.sh
+    -->
+
+    <files>
+        <file name="/etc/rc.d/rc.local"><![CDATA[#!/bin/sh
+
+touch /var/lock/subsys/local
+
+# Ensure devpts is mounted to prevent ssh hang-ups
+mount | grep devpts > /dev/null 2>&1
+if [ $? -ne 0 ] ; then
+    devpts="none   /dev/pts   devpts  gid=5,mode=620 0 0"
+    ( grep -v "\#" /etc/fstab | grep devpts > /dev/null 2>&1 ) || echo $devpts >> /etc/fstab
+    mount -a >/dev/null 2>&1
+fi
+
+# Randomise the root password as the last operation
+# We ideally have some more entropy at this stage
+#echo "-----RANDOMISING ROOT PASSWORD-----"
+#dd if=/dev/urandom count=128 2>/dev/null|md5sum|passwd --stdin root >/dev/null 2>&1
+
+# Regenerate the host keys at this stage
+# Having more entropy to work with
+echo "-----TRIGGERING HOST KEYS REGENERATION-----"
+echo "Removing existing keys"
+rm -f /etc/ssh/ssh_host_key.pub \
+      /etc/ssh/ssh_host_rsa_key.pub
+      /etc/ssh/ssh_host_dsa_key.pub \
+      /etc/ssh/ssh_host_key \
+      /etc/ssh/ssh_host_rsa_key \
+      /etc/ssh/ssh_host_dsa_key
+echo "Setting sshd to start as a service"
+/sbin/chkconfig --level 2345 sshd on
+echo "Bouncing sshd to force regeneration"
+/sbin/service sshd restart
+
+
+if [ ! -d /root/.ssh ] ; then
+    mkdir -p /root/.ssh
+    chmod 0700 /root/.ssh
+fi
+
+# We do this manually for root since boxgrinder will only append code to grab
+# the key for ec2-user.
+ATTEMPTS=5
+FAILED=0
+# Fetch public key using HTTP
+while [ ! -f /root/.ssh/authorized_keys ]; do
+    curl -f http://169.254.169.254/latest/meta-data/public-keys/0/openssh-key > /tmp/aws-key 2>/dev/null
+    if [ $? -eq 0 ]; then
+        cat /tmp/aws-key >> /root/.ssh/authorized_keys
+        chmod 0600 /root/.ssh/authorized_keys
+        rm -f /tmp/aws-key
+        echo "Successfully retrieved AWS public key from instance metadata"
+    else
+        FAILED=$(($FAILED + 1))
+        if [ $FAILED -ge $ATTEMPTS ]; then
+            echo "Failed to retrieve AWS public key after $FAILED attempts, quitting"
+            break
+        fi
+        echo "Could not retrieve AWS public key (attempt #$FAILED/$ATTEMPTS), retrying in 5 seconds..."
+        sleep 5
+    fi
+done
+
+# remove requiretty
+chmod +w /etc/sudoers
+sed -i 's/Defaults    requiretty/#Defaults    requiretty/g' /etc/sudoers
+chmod -w /etc/sudoers
+
+# Nimbus needs to have /root/.ssh created so that the create-keypair call will
+# succeed - shouldn't hurt on an Amazon EC2 image
+mkdir -p /root/.ssh
+chmod 700 /root/.ssh
+
+# update to latest available software
+yum update -y
+
+# force ntpdate
+ntpdate -u 0.us.pool.ntp.org
+
+]]>
+        </file>
+
+        <file name="/etc/ssh/sshd_config"><![CDATA[#    $OpenBSD: sshd_config,v 1.73 2005/12/06 22:38:28 reyk Exp $
+
+# This is the sshd server system-wide configuration file.  See
+# sshd_config(5) for more information.
+
+# This sshd was compiled with PATH=/usr/local/bin:/bin:/usr/bin
+
+# The strategy used for options in the default sshd_config shipped with
+# OpenSSH is to specify options with their default value where
+# possible, but leave them commented.  Uncommented options change a
+# default value.
+
+#Port 22
+#Protocol 2,1
+Protocol 2
+#AddressFamily any
+#ListenAddress 0.0.0.0
+#ListenAddress ::
+
+# HostKey for protocol version 1
+#HostKey /etc/ssh/ssh_host_key
+# HostKeys for protocol version 2
+#HostKey /etc/ssh/ssh_host_rsa_key
+#HostKey /etc/ssh/ssh_host_dsa_key
+
+# Lifetime and size of ephemeral version 1 server key
+#KeyRegenerationInterval 1h
+#ServerKeyBits 768
+
+# Logging
+# obsoletes QuietMode and FascistLogging
+#SyslogFacility AUTH
+SyslogFacility AUTHPRIV
+#LogLevel INFO
+
+# Authentication:
+
+#LoginGraceTime 2m
+PermitRootLogin yes
+#StrictModes yes
+#MaxAuthTries 6
+
+RSAAuthentication yes
+PubkeyAuthentication yes
+#AuthorizedKeysFile .ssh/authorized_keys
+
+# For this to work you will also need host keys in /etc/ssh/ssh_known_hosts
+#RhostsRSAAuthentication no
+# similar for protocol version 2
+#HostbasedAuthentication no
+# Change to yes if you don't trust ~/.ssh/known_hosts for
+# RhostsRSAAuthentication and HostbasedAuthentication
+#IgnoreUserKnownHosts no
+# Don't read the user's ~/.rhosts and ~/.shosts files
+#IgnoreRhosts yes
+
+# To disable tunneled clear text passwords, change to no here!
+#PasswordAuthentication yes
+#PermitEmptyPasswords no
+PasswordAuthentication no
+
+# Change to no to disable s/key passwords
+#ChallengeResponseAuthentication yes
+ChallengeResponseAuthentication no
+
+# Kerberos options
+#KerberosAuthentication no
+#KerberosOrLocalPasswd yes
+#KerberosTicketCleanup yes
+#KerberosGetAFSToken no
+
+# GSSAPI options
+#GSSAPIAuthentication no
+GSSAPIAuthentication yes
+#GSSAPICleanupCredentials yes
+GSSAPICleanupCredentials yes
+
+# Set this to 'yes' to enable PAM authentication, account processing,
+# and session processing. If this is enabled, PAM authentication will
+# be allowed through the ChallengeResponseAuthentication mechanism.
+# Depending on your PAM configuration, this may bypass the setting of
+# PasswordAuthentication, PermitEmptyPasswords, and
+# "PermitRootLogin without-password". If you just want the PAM account and
+# session checks to run without PAM authentication, then enable this but set
+# ChallengeResponseAuthentication=no
+UsePAM no
+#UsePAM yes
+
+# Accept locale-related environment variables
+AcceptEnv LANG LANGUAGE LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES
+AcceptEnv LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT
+AcceptEnv LC_IDENTIFICATION LC_ALL
+#AllowTcpForwarding yes
+#GatewayPorts no
+#X11Forwarding no
+X11Forwarding yes
+#X11DisplayOffset 10
+#X11UseLocalhost yes
+#PrintMotd yes
+#PrintLastLog yes
+#TCPKeepAlive yes
+#UseLogin no
+#UsePrivilegeSeparation yes
+#PermitUserEnvironment no
+#Compression delayed
+#ClientAliveInterval 0
+#ClientAliveCountMax 3
+#ShowPatchLevel no
+#UseDNS yes
+#PidFile /var/run/sshd.pid
+#MaxStartups 10
+#PermitTunnel no
+#ChrootDirectory none
+
+# no default banner path
+#Banner /some/path
+
+# override default of no subsystems
+Subsystem   sftp    /usr/libexec/openssh/sftp-server
+#UseDNS no
+]]>
+        </file>
+
+        <file name='/opt/install-osg.sh'><![CDATA[#!/bin/sh
+
+osg_release_el5="http://repo.grid.iu.edu/osg-el5-release-latest.rpm"
+epel_repo_el5="http://dl.fedoraproject.org/pub/epel/5/x86_64"
+
+osg_release_el6="http://repo.grid.iu.edu/osg-el6-release-latest.rpm"
+epel_repo_el6="http://dl.fedoraproject.org/pub/epel/6/x86_64"
+
+function install_osg() {
+    kernel_version="`uname -r`"
+    if [ "`echo $kernel_version | grep el5`" = "$kernel_version" ]; then
+        osg_release=$osg_release_el5
+        epel_repo=$epel_repo_el5
+    elif [ "`echo $kernel_version | grep el6`" = "$kernel_version" ]; then
+        osg_release=$osg_release_el6
+        epel_repo=$epel_repo_el6
+    else
+        osg_release=""
+    fi
+
+    # First figure out the latest epel-release rpm in the repo
+    epel_rpm_list="/tmp/rpms.$$"
+    wget $epel_repo --output-document=$epel_rpm_list
+    epel_release_rpm=`grep epel-release $epel_rpm_list | awk -F'"' '{print $2}'`
+    epel_release="$epel_repo/$epel_release_rpm"
+
+    echo "Installing OSG ..."
+    yum clean all
+    yum install --assumeyes $epel_release
+    yum install --assumeyes yum-priorities
+    yum install --assumeyes $osg_release
+    yum install --assumeyes osg-ca-certs
+    yum install --assumeyes osg-wn-client
+    yum install --assumeyes cvmfs
+    yum install --assumeyes cvmfs-keys
+    yum install --assumeyes oasis-config
+    yum install --assumeyes --enablerepo=osg-contrib glideinwms-vm-core
+    yum install --assumeyes --enablerepo=osg-contrib glideinwms-vm-ec2
+
+    # setup all necessary directories - these may exist already, but let's be sure
+    mkdir -p /var/cache/cvmfs2
+    chmod 0700 /var/cache/cvmfs2
+
+    # set up fuse and automount for cvmfs
+    cat << EOF > /etc/fuse.conf
+user_allow_other
+EOF
+    cat << EOF > /etc/auto.master
+/cvmfs /etc/auto.cvmfs
+EOF
+
+    # set up cvmfs
+    cat << EOF > /etc/cvmfs/domain.d/cern.ch.local
+CVMFS_SERVER_URL="http://cvmfs.fnal.gov:8000/opt/@org@;http://cvmfs.racf.bnl.gov:8000/opt/@org@;http://cvmfs-stratum-one.cern.ch:8000/opt/@org@;http://cernvmfs.gridpp.rl.ac.uk:8000/opt/@org@"
+EOF
+
+    cat << EOF > /etc/cvmfs/default.local
+CVMFS_REPOSITORIES=atlas.cern.ch,atlas-condb.cern.ch,lhcb.cern.ch,cms.cern.ch
+CVMFS_CACHE_BASE=/var/cache/cvmfs
+CVMFS_QUOTA_LIMIT=10000
+CVMFS_HTTP_PROXY="http://cache01.hep.wisc.edu:8001|http://cache02.hep.wisc.edu:8001"
+export CMS_LOCAL_SITE=/etc/cvmfs/SITECONF
+EOF
+
+}
+
+function enable_services() {
+/sbin/chkconfig fetch-crl-boot on
+/sbin/chkconfig fetch-crl-cron on
+/sbin/chkconfig autofs on
+/sbin/chkconfig cvmfs on
+}
+
+function start_services() {
+/sbin/service fetch-crl-boot start
+/sbin/service fetch-crl-cron start
+/sbin/service autofs start
+/sbin/service cvmfs start
+}
+
+# Install OSG software
+install_osg
+
+# Enable desired services
+enable_services
+
+# Start desired services
+start_services
+
+]]>
+        </file>
+    </files>
+    <commands>
+        <command name='rc-local'>chmod a+x /etc/rc.d/rc.local</command>
+        <command name='install-osg'>chmod a+x /opt/install-osg.sh; /opt/install-osg.sh</command>
+        <command name='yum_update'>yum clean all; yum -y update</command>
+    </commands>
+</template>
