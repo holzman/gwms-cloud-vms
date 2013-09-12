@@ -277,11 +277,18 @@ fi
 %defattr(-,root,root,-)
 %attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-nimbus.ini
 
+%files one
+%defattr(-,root,root,-)
+%attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-one.ini
+
 %files test
 %defattr(-,root,root,-)
 %attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-test.ini
 
 %changelog
+* Thu Sep 09 2013 Parag Mhashilkar  0.4.0
+- Added support for OpenNebula style context
+
 * Mon Jul 12 2013 Anthony Tiradani  0.3.2
 - Changed the format of expected user data
 
