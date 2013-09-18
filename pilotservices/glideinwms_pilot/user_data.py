@@ -105,8 +105,9 @@ class UserData(object):
             vm_utils.touch(self.config.userdata_file, mode=0600)
             fd = open(self.config.userdata_file, 'w')
             user_data = base64.b64decode(one_ec2_user_data(self.config.one_user_data_file))
-            # Only write to logs for debugging purposes. Writing to
-            # ec2_user_data to logs is a security issue.
+            self.config.log.log_info('Writing User data')
+            # Only write to logs for debugging purposes.
+            # Writing ec2_user_data to logs is a security issue.
             #self.config.log.log_info('Writing User data %s' % user_data)
             fd.write(user_data)
             fd.close()
