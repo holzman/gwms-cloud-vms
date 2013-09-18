@@ -53,6 +53,7 @@ def opennebula_context_disk():
 
 def one_ec2_user_data(contextfile):
     ec2_user_data = ''
+    fd = None
     try:
         fd = open(contextfile, 'r')
         for line in fd.readlines():
@@ -69,13 +70,18 @@ def one_ec2_user_data(contextfile):
 class UserData(object):
     def __init__(self, config):
         self.config = config
+        self.config.log.log_info('Created UserData object')
 
     def retrieve(self):
         context_type = self.config.contextualization_type.upper()
+        self.config.log.log_info('Retrieving ec2_user_data for %s' % context_type)
         if context_type == CONTEXT_TYPE_EC2:
             self.ec2_retrieve_user_data()
         elif context_type == CONTEXT_TYPE_NIMBUS:
             self.nimbus_retrieve_user_data()
+        elif context_type == CONTEXT_TYPE_OPENNEBULA:
+            self.one_retrieve_user_data()
+
 
     def ec2_retrieve_user_data(self):
         try:
@@ -90,14 +96,18 @@ class UserData(object):
     def one_retrieve_user_data(self):
         try:
             # Mount cdrom drive... OpenNebula contextualization unmounts it
+            self.config.log.log_info('Mounting opennebula context disk %s' % opennebula_context_disk())
             mount_cmd = ["mount", "-t", "iso9660", opennebula_context_disk(), "/mnt"]
             subprocess.call(mount_cmd)
 
             # copy the OpenNebula userdata file
+            self.config.log.log_info('Reading context file: %s' % self.config.one_user_data_file)
+            vm_utils.touch(self.config.userdata_file, mode=0600)
             fd = open(self.config.userdata_file, 'w')
-            fd.write(one_ec2_user_data(self.config.one_user_data_file))
+            user_data = base64.b64decode(one_ec2_user_data(self.config.one_user_data_file))
+            self.config.log.log_info('Writing User data %s' % user_data)
+            fd.write(user_data)
             fd.close()
-            #vm_utils.cp(self.config.one_user_data_file, self.config.userdata_file)
             umount_cmd = ["umount", "/mnt"]
             subprocess.call(umount_cmd)
         except Exception, ex:
@@ -142,7 +152,10 @@ class GlideinWMSUserData(UserData):
                 userdata = userdata.split(delimiter)
 
                 # get and process the pilot ini file
+                log_msg = "Extracting ini file from the EC2_USER_DATA"
+                self.config.log.log_info(self.template % log_msg)
                 pilot_ini = base64.b64decode(userdata[0])
+                vm_utils.touch(self.config.ini_file, mode=0600)
                 ini_fd = open(self.config.ini_file, 'w')
                 ini_fd.write(pilot_ini)
                 ini_fd.close()
@@ -150,6 +163,8 @@ class GlideinWMSUserData(UserData):
                 ini = ini_handler.Ini(self.config.ini_file)
 
                 # get the initial set of arguments for the glidein_startup.sh script
+                log_msg = "Extracting arguments from the EC2_USER_DATA"
+                self.config.log.log_info(self.template % log_msg)
                 self.config.pilot_args = ini.get("glidein_startup", "args")
                 log_msg = "pilot_args : %s" % self.config.pilot_args
                 self.config.log.log_info(self.template % log_msg)
@@ -195,6 +210,8 @@ class GlideinWMSUserData(UserData):
                 # yes, the tmp file name is completely predictable, but this isn't
                 # an interactive node and the lifetime of the node is very short
                 # so the risk of attack on this vector is minimal
+                log_msg = "Extracting pilot proxy: from the EC2_USER_DATA"
+                self.config.log.log_info(self.template % log_msg)
                 compressed_proxy = base64.b64decode(userdata[2])
                 fd = os.open("%s.tmp" % self.config.proxy_file, os.O_CREAT|os.O_WRONLY, 0600)
                 try:
@@ -219,7 +236,7 @@ class GlideinWMSUserData(UserData):
                 log_msg = "Delimiter not found.  Assuming we have been launched manually"
                 self.config.log.log_info(self.template % log_msg)
 
-
+                vm_utils.touch(self.config.ini_file, mode=0600)
                 fd = open(self.config.ini_file, 'w')
                 fd.write(userdata)
                 fd.close()

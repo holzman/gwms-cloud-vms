@@ -53,13 +53,14 @@ class Config(object):
 
     def setup_contextualization(self):
         self.contextualization_type = self.ini.get("DEFAULT", "contextualize_protocol")
+        self.log.log_info("Contextualization Type identified as: %s" % self.contextualization_type)
         if self.contextualization_type in Config.valid_context_types:
             if self.contextualization_type == CONTEXT_TYPE_EC2:
                 self.ec2_url = self.ini.get("DEFAULT", "ec2_url")
             elif self.contextualization_type == CONTEXT_TYPE_NIMBUS:
                 self.nimbus_url_file = self.ini.get("DEFAULT", "nimbus_url_file")
             elif self.contextualization_type == CONTEXT_TYPE_OPENNEBULA:
-                self.config.one_user_data_file = self.ini.get("DEFAULTS", "one_user_data_file")
+                self.one_user_data_file = self.ini.get("DEFAULT", "one_user_data_file")
         else:
             raise ConfigError("configured context type not valid")
 

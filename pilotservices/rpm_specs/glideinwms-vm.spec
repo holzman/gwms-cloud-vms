@@ -8,7 +8,7 @@
 %endif
 
 Name:               glideinwms-vm
-Version:            0.3
+Version:            0.4
 Release:            2%{?dist}
 
 Summary:            The glideinWMS service that contextualizes a VM

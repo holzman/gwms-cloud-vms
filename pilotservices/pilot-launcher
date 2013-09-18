@@ -111,23 +111,29 @@ def main():
     try:
         config = Config(options.config_file)
         config.setup()
-
         try:
             # Change to the working directory
+            config.log.log_info('Changing to: %s' % config.home_dir)
             cd(config.home_dir)
+            config.log.log_info('Now in: %s' % config.home_dir)
 
             # Run PRE scripts here
             run_scripts(config.pre_script_dir, config.log, 
                         float(config.max_script_runtime))
 
-            # drop privileges to the glidein user
-            config.log.log_info("Dropping privs to %s" % config.glidein_user)
-            drop_privs(config.glidein_user)
-
             # get and extract the user data - should be a tar file
             config.log.log_info("Retrieving and extracting user data")
             userdata = GlideinWMSUserData(config)
             userdata.extract_user_data()
+
+            # Change the ownership of files in ~glidein_pilot before 
+            # dropping privileges
+            chown('%s.%s' % (config.glidein_user, config.glidein_user),
+                  config.home_dir)
+
+            # drop privileges to the glidein user
+            config.log.log_info("Dropping privs to %s" % config.glidein_user)
+            drop_privs(config.glidein_user)
 
             # get the glidein_startup.sh script
             config.log.log_info("Retrieving glidein_startup.sh")
