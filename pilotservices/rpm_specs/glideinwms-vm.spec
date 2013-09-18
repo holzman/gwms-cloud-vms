@@ -9,7 +9,7 @@
 
 Name:               glideinwms-vm
 Version:            0.4
-Release:            2%{?dist}
+Release:            0.1.rc1%{?dist}
 
 Summary:            The glideinWMS service that contextualizes a VM
 Group:              System Environment/Daemons
