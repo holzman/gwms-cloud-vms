@@ -159,6 +159,7 @@ def main():
             _ = execute_cmd(glidein_startup, 
                             float(config.max_lifetime), config.log, 
                             pilot_args, pilot_env)
+
         except ScriptError, ex:
             message = "An Error has occured: %s" % str(ex)
             config.log.log_err(message)
@@ -175,8 +176,13 @@ def main():
         run_scripts(config.post_script_dir, config.log, 
                     float(config.max_script_runtime))
     except ScriptError, ex:
-        message = "An Error has occured: %s" % str(ex)
-        config.log.log_err(message)
+        try:
+            message = "An Error has occured: %s" % str(ex)
+            config.log.log_err(message)
+        except:
+            # If a config error occured orginally, then logging isn't available.  This is 
+            # probably what brought us to this point
+            pass
 
     # No logging is available if the config.setup call errors, so don't try
     if config.disable_shutdown:
