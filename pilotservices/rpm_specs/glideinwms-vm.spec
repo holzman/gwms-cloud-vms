@@ -9,7 +9,7 @@
 
 Name:               glideinwms-vm
 Version:            0.3
-Release:            2%{?dist}
+Release:            3%{?dist}
 
 Summary:            The glideinWMS service that contextualizes a VM
 Group:              System Environment/Daemons
@@ -256,6 +256,9 @@ fi
 %attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-test.ini
 
 %changelog
+* Mon Jul 12 2013 Anthony Tiradani  0.3.3
+- Bug fix for extracting the proxy
+
 * Mon Jul 12 2013 Anthony Tiradani  0.3.2
 - Changed the format of expected user data
 
