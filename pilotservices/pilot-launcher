@@ -18,6 +18,7 @@ from glideinwms_pilot.vm_utils import shutdown_vm
 from glideinwms_pilot.vm_utils import daemonize
 from glideinwms_pilot.vm_utils import ls_files_sorted
 from glideinwms_pilot.vm_utils import sleep
+from glideinwms_pilot.vm_utils import run_scripts
 
 from glideinwms_pilot.user_data import GlideinWMSUserData
 
@@ -32,30 +33,6 @@ def retrieve_glidein_startup(config):
         script, _ = urllib.urlretrieve(url, script)
     except Exception, ex:
         raise PilotError("Error retrieving glidein_startup.sh: %s\n" % str(ex))
-
-def run_scripts(directory, log_writer, max_script_runtime=60, arguments=None):
-    try:
-        script_list = ls_files_sorted(directory)
-    except Exception, e:
-        message = "An Error has occured retrieving scripts: %s" % str(e)
-        raise ScriptError(message)
-
-    for script in script_list:
-        try:
-            cmd = "%s/%s" % (directory, script)
-            exit_code = execute_cmd(cmd, max_script_runtime, log_writer, 
-                                    arguments, os.environ)
-        except Exception, e:
-            message = "An Error has occured attempting to run script: %s" \
-                      "\n\nError: %s" % (cmd, str(e))
-            log_writer.log_err(message)
-
-        # have to mod 256 because on some systems, instead of returning 0 on
-        # success, 256 is returned
-        if not int(exit_code) % 256 == 0:
-            message = "A PRE script (%s) has exited with an error. \nExit " \
-                      "Code: %s" % (cmd, str(exit_code))
-            log_writer.log_err(message)
 
 def main():
     """
@@ -78,8 +55,8 @@ def main():
 
     usage = "usage: %prog [options] [Site FQDN]"
     parser = OptionParser(usage=usage)
-    parser.add_option("-d", "--disable-daemon", action="store_true", 
-                      dest="disable_daemon", default=False, 
+    parser.add_option("-d", "--disable-daemon", action="store_true",
+                      dest="disable_daemon", default=False,
                       help="Disable the daemon functionality and run in "\
                            "terminal")
 
@@ -91,115 +68,96 @@ def main():
     init_config_directory = "/etc/glideinwms"
     if not os.path.exists(init_config_directory):
         init_config_directory = os.path.dirname(os.path.abspath(__file__))
-    parser.add_option("-c", "--config-file", dest="config_file", 
-                      default="%s/glidein-pilot.ini" % init_config_directory, 
+    parser.add_option("-c", "--config-file", dest="config_file",
+                      default="%s/glidein-pilot.ini" % init_config_directory,
                       help="Specify a custom config file")
 
-    parser.add_option("-p", "--pid-file", dest="pid_file", 
+    parser.add_option("-p", "--pid-file", dest="pid_file",
                       default="/tmp/pilot.pid", help="Specify the pidfile")
 
-
     (options, args) = parser.parse_args()
-
 
     if options.disable_daemon:
         print "disable daemon call"
     else:
         daemonize(options.pid_file)
 
+    # set disable_shutdown to False by default
+    disable_shutdown = False
     # If config fails, we need to write error to console if available
     try:
         config = Config(options.config_file)
         config.setup()
-        try:
-            # Change to the working directory
-            config.log.log_info('Changing to: %s' % config.home_dir)
-            cd(config.home_dir)
-            config.log.log_info('Now in: %s' % config.home_dir)
 
-            # Run PRE scripts here
-            run_scripts(config.pre_script_dir, config.log, 
-                        float(config.max_script_runtime))
+        # Change to the working directory
+        config.log.log_info('Changing to: %s' % config.home_dir)
+        cd(config.home_dir)
+        config.log.log_info('Now in: %s' % config.home_dir)
 
-            # get and extract the user data - should be a tar file
-            config.log.log_info("Retrieving and extracting user data")
-            userdata = GlideinWMSUserData(config)
-            userdata.extract_user_data()
-
-            # Change the ownership of files in ~glidein_pilot before 
-            # dropping privileges
-            chown('%s.%s' % (config.glidein_user, config.glidein_user),
-                  config.home_dir)
-
-            # drop privileges to the glidein user
-            config.log.log_info("Dropping privs to %s" % config.glidein_user)
-            drop_privs(config.glidein_user)
-
-            # get the glidein_startup.sh script
-            config.log.log_info("Retrieving glidein_startup.sh")
-            retrieve_glidein_startup(config)
-            chmod(0755, "%s/glidein_startup.sh" % config.home_dir)
-
-            # configure pilot launch environment
-            config.log.log_info("Configuring pilot environment...")
-            config.log.log_info("    Username: %s" % config.glidein_user)
-
-            pilot_env = config.get_custom_env()
-            config.log.log_info("    Environment: %s" % str(pilot_env))
-
-            pilot_args = config.pilot_args.split()
-            pilot_args.insert(0, "glidein_startup.sh")
-            config.log.log_info("Pilot arguments: %s" % str(pilot_args))
-
-            # launch the pilot
-            # The pilot will only be allowed to run for config.max_lifetime
-            # seconds before being terminated
-            glidein_startup = "%s/glidein_startup.sh" % config.home_dir
-            config.log.log_info("Launching Pilot (%s)..." % glidein_startup)
-            _ = execute_cmd(glidein_startup, 
-                            float(config.max_lifetime), config.log, 
-                            pilot_args, pilot_env)
-        except ScriptError, ex:
-            message = "An Error has occured: %s" % str(ex)
-            config.log.log_err(message)
-        except PilotError, ex:
-            message = "A PilotError has occured: %s" % str(ex)
-            config.log.log_err(message)
-        except Exception, ex:
-            config.log.log_err("Error launching pilot: %s" % str(ex))
-    except ConfigError, ex:
-        config.disable_shutdown = False
-
-    try:
-        try:
-            message = "Running Post Scripts"
-            config.log.log_info(message)
-        except:
-            # If a config error occured orginally, then logging isn't
-            # available.  This is probably what brought us to this point
-            pass
-
-        # Always run POST Scripts
-        run_scripts(config.post_script_dir, config.log, 
+        # Run PRE scripts here
+        run_scripts(config.pre_script_dir, config.log,
                     float(config.max_script_runtime))
-        try:
-            message = "Running Post Scripts ... DONE."
-            config.log.log_info(message)
-        except:
-            # If a config error occured orginally, then logging isn't
-            # available.  This is probably what brought us to this point
-            pass
+
+        # get and extract the user data - should be a tar file
+        config.log.log_info("Retrieving and extracting user data")
+        userdata = GlideinWMSUserData(config)
+        userdata.extract_user_data()
+
+        # now that we have the config, use the config value to determine whether we shutdown
+        disable_shutdown = config.disable_shutdown
+
+        # Change the ownership of files in ~glidein_pilot before
+        # dropping privileges
+        chown('%s.%s' % (config.glidein_user, config.glidein_user),
+              config.home_dir)
+
+        # drop privileges to the glidein user
+        config.log.log_info("Dropping privs to %s" % config.glidein_user)
+        drop_privs(config.glidein_user)
+
+        # get the glidein_startup.sh script
+        config.log.log_info("Retrieving glidein_startup.sh")
+        retrieve_glidein_startup(config)
+        chmod(0755, "%s/glidein_startup.sh" % config.home_dir)
+
+        # configure pilot launch environment
+        config.log.log_info("Configuring pilot environment...")
+        config.log.log_info("    Username: %s" % config.glidein_user)
+
+        pilot_env = config.get_custom_env()
+        config.log.log_info("    Environment: %s" % str(pilot_env))
+
+        pilot_args = config.pilot_args.split()
+        pilot_args.insert(0, "glidein_startup.sh")
+        config.log.log_info("Pilot arguments: %s" % str(pilot_args))
+
+        # launch the pilot
+        # The pilot will only be allowed to run for config.max_lifetime
+        # seconds before being terminated
+        glidein_startup = "%s/glidein_startup.sh" % config.home_dir
+        config.log.log_info("Launching Pilot (%s)..." % glidein_startup)
+        _ = execute_cmd(glidein_startup,
+                        float(config.max_lifetime), config.log,
+                        pilot_args, pilot_env)
+
+        # Run POST Scripts
+        config.log.log_info("Running Post Scripts")
+        run_scripts(config.post_script_dir, config.log,
+                    float(config.max_script_runtime))
+
     except ScriptError, ex:
-        try:
-            message = "An Error has occured: %s" % str(ex)
-            config.log.log_err(message)
-        except:
-            # If a config error occured orginally, then logging isn't
-            # available.  This is probably what brought us to this point
-            pass
+        message = "An Error has occured: %s" % str(ex)
+        config.log.log_err(message)
+    except PilotError, ex:
+        message = "A PilotError has occured: %s" % str(ex)
+        config.log.log_err(message)
+    except ConfigError, ex:
+        disable_shutdown = False
+    except Exception, ex:
+        config.log.log_err("Error launching pilot: %s" % str(ex))
 
     # No logging is available if the config.setup call errors, so don't try
-    if config.disable_shutdown:
+    if disable_shutdown:
         print "shutdown disabled"
     else:
         ten_minutes = 600 # seconds
