@@ -75,6 +75,7 @@ def shutdown_vm(pid_file):
         rm(pid_file)
 
     # execute the shutdown command
+    os.environ["PATH"] = os.environ["PATH"] + ":/sbin:/usr/sbin"
     cmd = "sudo shutdown -h now"
     os.system(cmd)
 
