@@ -9,6 +9,8 @@ import stat
 import time
 
 from errors import PilotError
+from errors import ScriptError
+from process_handling import execute_cmd
 
 #### BEGIN DAEMON CODE ####
 
@@ -212,3 +214,27 @@ def touch(file_path, mode=0600):
 
 def sleep(seconds):
     time.sleep(int(seconds))
+
+def run_scripts(directory, log_writer, max_script_runtime=60, arguments=None):
+    try:
+        script_list = ls_files_sorted(directory)
+    except Exception, e:
+        message = "An Error has occured retrieving scripts: %s" % str(e)
+        raise ScriptError(message)
+
+    for script in script_list:
+        try:
+            cmd = "%s/%s" % (directory, script)
+            exit_code = execute_cmd(cmd, max_script_runtime, log_writer, 
+                                    arguments, os.environ)
+        except Exception, e:
+            message = "An Error has occured attempting to run script: %s" \
+                      "\n\nError: %s" % (cmd, str(e))
+            log_writer.log_err(message)
+
+        # have to mod 256 because on some systems, instead of returning 0 on
+        # success, 256 is returned
+        if not int(exit_code) % 256 == 0:
+            message = "A PRE script (%s) has exited with an error. \nExit " \
+                      "Code: %s" % (cmd, str(exit_code))
+            log_writer.log_err(message)
