@@ -190,9 +190,14 @@ def main():
             # If a config error occured orginally, then logging isn't
             # available.  This is probably what brought us to this point
             pass
-        except ScriptError, ex:
-        message = "An Error has occured: %s" % str(ex)
-        config.log.log_err(message)
+    except ScriptError, ex:
+        try:
+            message = "An Error has occured: %s" % str(ex)
+            config.log.log_err(message)
+        except:
+            # If a config error occured orginally, then logging isn't
+            # available.  This is probably what brought us to this point
+            pass
 
     # No logging is available if the config.setup call errors, so don't try
     if config.disable_shutdown:
