@@ -42,7 +42,7 @@ function setup_spec_files
 function build_rpms
 {
     # build the srpm
-    rpmbuild -bs $RPM_TOPDIR/SPECS/glideinwms-vm.spec
+    rpmbuild --define "_source_filedigest_algorithm md5" --define "_binary_filedigest_algorithm md5" -bs $RPM_TOPDIR/SPECS/glideinwms-vm.spec
 
     mkdir -p $BUILD_HOME/srpms
     cp -r $RPM_TOPDIR/SRPMS/* $BUILD_HOME/srpms
