@@ -70,9 +70,11 @@ def daemonize(pidfile):
 #### END DAEMON CODE ####
 
 def shutdown_vm(pid_file):
-    # remove the pid file
-    if os.path.exists(pid_file):
+    # Only attempt to remove the pid file and ignore any errors
+    try:
         rm(pid_file)
+    except:
+        pass
 
     # execute the shutdown command
     cmd = "sudo shutdown -h now"
