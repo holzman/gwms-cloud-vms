@@ -120,6 +120,7 @@ getent passwd glidein_pilot >/dev/null || /usr/sbin/useradd -d /home/glidein_pil
 
 # Add glidein_pilot to sudoers so that it can shutdown the VM without a password 
 /bin/chmod +w /etc/sudoers
+echo "Defaults:glidein_pilot !requiretty" >> /etc/sudoers
 echo "glidein_pilot ALL= NOPASSWD: ALL" >> /etc/sudoers
 /bin/chmod -w /etc/sudoers
 
