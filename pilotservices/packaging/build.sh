@@ -1,6 +1,10 @@
 #!/bin/bash
 
-export BUILD_HOME=`pwd`
+fullpath=`readlink -e $0`
+mydir=`dirname $fullpath`
+build_home=`readlink -e $mydir/..`
+
+export BUILD_HOME=$build_home
 
 function setup_rpmbuild
 {
