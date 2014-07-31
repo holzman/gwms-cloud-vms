@@ -116,10 +116,11 @@ getent group glidein_pilot >/dev/null || /usr/sbin/groupadd glidein_pilot
 gid=$(getent group glidein_pilot | cut -d: -f3)
 
 # Make glidein_pilot user
-getent passwd glidein_pilot >/dev/null || /usr/sbin/useradd -d /home/glidein_pilot -g ${gid} -s /bin/bash glidein_pilot
+getent passwd glidein_pilot >/dev/null || /usr/sbin/useradd -m -d /home/glidein_pilot -g ${gid} -s /bin/bash glidein_pilot
 
 # Add glidein_pilot to sudoers so that it can shutdown the VM without a password 
 /bin/chmod +w /etc/sudoers
+echo "Defaults:glidein_pilot !requiretty" >> /etc/sudoers
 echo "glidein_pilot ALL= NOPASSWD: ALL" >> /etc/sudoers
 /bin/chmod -w /etc/sudoers
 
