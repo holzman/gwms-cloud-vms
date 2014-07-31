@@ -8,8 +8,8 @@
 %endif
 
 Name:               glideinwms-vm
-Version:            0.4
-Release:            0.2.rc2%{?dist}
+Version:            1.0
+Release:            1%{?dist}
 
 Summary:            The glideinWMS service that contextualizes a VM
 Group:              System Environment/Daemons
@@ -287,6 +287,9 @@ fi
 %attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-test.ini
 
 %changelog
+* Thu Jul 31 2014 Parag Mhashilkar  1.0
+- First stable release
+
 * Mon Sep 09 2013 Parag Mhashilkar  0.4.0
 - Added support for OpenNebula style context
 
