@@ -9,7 +9,7 @@
 
 Name:               glideinwms-vm
 Version:            1.0
-Release:            1%{?dist}
+Release:            2%{?dist}
 
 Summary:            The glideinWMS service that contextualizes a VM
 Group:              System Environment/Daemons
@@ -20,13 +20,6 @@ BuildArchitectures: noarch
 
 Source0:            glideinwms_pilot.tar.gz
 
-
-# Make sure this package is installed *after* /etc/sudoers is created
-Requires:           sudo
-Requires(post):     /sbin/chkconfig
-Requires(pre):      /usr/sbin/groupadd
-Requires(pre):      /usr/sbin/useradd
-Requires(pre):      /bin/chmod
 
 %description
 glideinWMS pilot launcher service
@@ -42,6 +35,13 @@ down the VM once the pilot exits.
 ###############################################################################
 %package core
 Summary:            The glideinWMS service that contextualizes a VM
+# Make sure this package is installed *after* /etc/sudoers is created
+Requires:           sudo
+Requires(post):     /sbin/chkconfig
+Requires(pre):      /usr/sbin/groupadd
+Requires(pre):      /usr/sbin/useradd
+Requires(pre):      /bin/chmod
+
 Group:              System Environment/Daemons
 
 %description core
@@ -55,6 +55,7 @@ down the VM once the pilot exits.
 
 %package ec2
 Summary:            The glideinWMS service that contextualizes a VM
+Requires:           glideinwms-vm-core >= %{version}-%{release}
 Group:              System Environment/Daemons
 
 %description ec2
@@ -66,6 +67,7 @@ retrieval.
 
 %package one
 Summary:            The glideinWMS service that contextualizes a VM
+Requires:           glideinwms-vm-core >= %{version}-%{release}
 Group:              System Environment/Daemons
 
 %description one
@@ -77,6 +79,7 @@ user data retrieval.
 
 %package nimbus
 Summary:            The glideinWMS service that contextualizes a VM
+Requires:           glideinwms-vm-core >= %{version}-%{release}
 Group:              System Environment/Daemons
 
 %description nimbus
@@ -87,6 +90,7 @@ retrieval.
 
 %package test
 Summary:            The glideinWMS service that contextualizes a VM
+Requires:           glideinwms-vm-core >= %{version}-%{release}
 Group:              System Environment/Daemons
 
 %description test
@@ -287,7 +291,10 @@ fi
 %attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-test.ini
 
 %changelog
-* Thu Jul 31 2014 Parag Mhashilkar  1.0
+* Wed Aug 6 2014 Parag Mhashilkar  1.0-2
+- Make glideinwms-vm-core dependency for other rpms
+
+* Thu Jul 31 2014 Parag Mhashilkar  1.0-1
 - First stable release
 
 * Mon Sep 09 2013 Parag Mhashilkar  0.4.0

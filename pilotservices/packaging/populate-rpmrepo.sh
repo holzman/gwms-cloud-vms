@@ -16,8 +16,8 @@ repo=$1
 #fi
 
 # Check with Parag or Tony to get access to the repo
-repologin="gwmscloud@web1.fnal.gov"
-repodir='/var/www/html/files/gwmscloud'
+repologin="glideinwms@web1.fnal.gov"
+repodir='/var/www/html/files/glideinwms'
 
 # Root directory where mock puts the files
 mockdir="/var/lib/mock"

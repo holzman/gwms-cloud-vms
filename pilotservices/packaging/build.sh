@@ -34,7 +34,7 @@ function setup_rmpmmacros
 function build_source_tarball
 {
     # Build the source tar for rpm_build
-    tar --create --gzip --verbose --files-from=source_list.txt --file=$BUILD_HOME/glideinwms_pilot.tar.gz
+    tar --create --gzip --verbose --files-from=$BUILD_HOME/source_list.txt --file=$BUILD_HOME/glideinwms_pilot.tar.gz
     mv $BUILD_HOME/glideinwms_pilot.tar.gz $RPM_TOPDIR/SOURCES
 }
 
