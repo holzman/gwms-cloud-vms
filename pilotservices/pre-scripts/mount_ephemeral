@@ -5,7 +5,7 @@
 #
 
 LOGFILE=ephemeral_storage.log
-VIRTUAL_DISKS="vdb xvdb sda2 sdb sdbc"
+VIRTUAL_DISKS="xvdf vdb xvdb sda2 sdb sdbc"
 
 echo "Attempting to mount ephemeral storage" | tee $LOGFILE
 
@@ -21,7 +21,7 @@ for VD in $VIRTUAL_DISKS ; do
         echo "Mounting and mirroring /home..." | tee $LOGFILE
         mv -v /home /home.orig 2>&1 | tee $LOGFILE
         mkdir -v /home  2>&1 | tee $LOGFILE
-        mount -t ext3 /dev/$VD /home 2>&1 | tee $LOGFILE
+        mount /dev/$VD /home 2>&1 | tee $LOGFILE
         cp -avr /home.orig/* /home 2>&1 | tee $LOGFILE
 
         d=`date`
