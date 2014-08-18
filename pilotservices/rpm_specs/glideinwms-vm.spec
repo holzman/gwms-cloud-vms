@@ -8,8 +8,8 @@
 %endif
 
 Name:               glideinwms-vm
-Version:            1.0
-Release:            2%{?dist}
+Version:            1.0.1
+Release:            1%{?dist}
 
 Summary:            The glideinWMS service that contextualizes a VM
 Group:              System Environment/Daemons
@@ -291,6 +291,9 @@ fi
 %attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-test.ini
 
 %changelog
+* Mon Aug 18 2014 Parag Mhashilkar  1.0.1-1
+- Add new mount points for ephemeral storage in ec2
+
 * Wed Aug 6 2014 Parag Mhashilkar  1.0-2
 - Make glideinwms-vm-core dependency for other rpms
 
