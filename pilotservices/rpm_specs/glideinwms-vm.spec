@@ -185,6 +185,9 @@ install -m 0755 pre-scripts/mount_ephemeral $RPM_BUILD_ROOT%{_libexecdir}/glidei
 
 /sbin/chkconfig --add glideinwms-pilot
 /sbin/chkconfig glideinwms-pilot on
+mkdir -p %{_localstatedir}/log/glideinwms-pilot
+touch %{_localstatedir}/log/glideinwms-pilot/pilot_launcher.log
+chown -R glidein_pilot.glidein_pilot %{_localstatedir}/log/glideinwms-pilot
 
 %post ec2
 
@@ -269,7 +272,6 @@ fi
 %attr(755,root,root) %{_initrddir}/glideinwms-pilot
 %attr(755,root,root) %{python_sitelib}/glideinwms_pilot
 %attr(755,root,root) %{_libexecdir}/glideinwms_pilot/PRE/mount_ephemeral
-%attr(-, glidein_pilot,glidein_pilot) %{_localstatedir}/log/pilot_launcher.log
 
 # For the moment there are no post scripts but we want to include the post directory anyway
 %dir %{_libexecdir}/glideinwms_pilot/POST

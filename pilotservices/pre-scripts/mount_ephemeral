@@ -19,8 +19,8 @@ for VD in $VIRTUAL_DISKS ; do
         #mkfs.ext3 -F -L home /dev/$VD | tee $LOGFILE
 
         echo "Mounting and mirroring /home..." | tee --append $LOGFILE
-        mkdir /home.orig
-        mv -v /home/* /home.orig/ 2>&1 | tee --append $LOGFILE
+        rm -rf /home.orig
+        mv -v /home /home.orig 2>&1 | tee --append $LOGFILE
         mkdir -v /home  2>&1 | tee --append $LOGFILE
         mount /dev/$VD /home 2>&1 | tee --append $LOGFILE
         cp -avr /home.orig/* /home 2>&1 | tee --append $LOGFILE

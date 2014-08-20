@@ -79,7 +79,7 @@ class Config(object):
                 log_writer = FileWriter(self.home_dir)
         else:
             #log_writer = FileWriter(self.home_dir)
-            log_writer = FileWriter('/var/log')
+            log_writer = FileWriter('/var/log/glideinwms-pilot')
         self.log = Logger(log_writer)
         self.log.log_info("Pilot Launcher started...")
 
