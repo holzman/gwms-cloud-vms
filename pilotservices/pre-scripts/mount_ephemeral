@@ -5,7 +5,7 @@
 #
 
 LOGFILE=/tmp/ephemeral_storage.log
-VIRTUAL_DISKS="xvdf vda3 vdb xvdb sda2 sdb sdbc"
+VIRTUAL_DISKS="xvdf xvdb vda3 vdb sda2 sdb sdbc"
 
 echo "Attempting to mount ephemeral storage" | tee $LOGFILE
 

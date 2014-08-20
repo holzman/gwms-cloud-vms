@@ -54,8 +54,8 @@ function build_rpms
     srpm_to_build=$(ls -pt $BUILD_HOME/srpms | grep -v '/$' | head -1)
     #mock -r epel-6-x86_64 --no-clean rebuild $srpm_to_build
     #mock -r epel-5-x86_64 --no-clean rebuild $srpm_to_build
-    mock -r epel-6-x86_64 rebuild $srpm_to_build
-    mock -r epel-5-x86_64 rebuild $srpm_to_build
+    mock -r epel-6-x86_64 --rebuild $srpm_to_build
+    mock -r epel-5-x86_64 --rebuild $srpm_to_build
 }
 
 function cleanup
