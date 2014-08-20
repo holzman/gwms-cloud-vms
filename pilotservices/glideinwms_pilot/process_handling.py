@@ -4,8 +4,10 @@ import errno
 import fcntl
 import select
 import signal
+import traceback
+import sys
 
-def run_child(executable, output_writer, input_reader=None, args=None, env=None):
+def run_child(executable, output_writer, input_reader=None, args=[], env={}):
     """
     Run a child process, hooking its stdout and stderr to output FD
 
@@ -28,6 +30,11 @@ def run_child(executable, output_writer, input_reader=None, args=None, env=None)
             os.dup2(output_fileno, 2)
             os.execve(executable, args, env)
         except:
+            tb = traceback.format_exception(sys.exc_info()[0],
+                                            sys.exc_info()[1],
+                                            sys.exc_info()[2])
+            output_writer.log_err("Error invoking os.execve")
+            output_writer.log_err(tb)
             os._exit(1)
 
     return pid

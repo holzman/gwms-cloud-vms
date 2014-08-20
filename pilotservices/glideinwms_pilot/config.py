@@ -25,7 +25,7 @@ class Config(object):
         self.default_max_lifetime = self.ini.get("DEFAULT", "default_max_lifetime", "172800") # 48 hours
         self.max_lifetime = self.default_max_lifetime  # can be overridden
         self.disable_shutdown = self.ini.getBoolean("DEFAULT", "disable_shutdown", False)
-        self.max_script_runtime = self.ini.getBoolean("DEFAULT", "max_script_runtime", "60")
+        self.max_script_runtime = self.ini.get("DEFAULT", "max_script_runtime", "60")
 
         self.pre_script_dir = self.ini.get("DIRECTORIES", "pre_script_dir", "/usr/libexec/glideinwms_pilot/PRE")
         self.post_script_dir = self.ini.get("DIRECTORIES", "post_script_dir", "/usr/libexec/glideinwms_pilot/POST")
@@ -78,7 +78,8 @@ class Config(object):
             else:
                 log_writer = FileWriter(self.home_dir)
         else:
-            log_writer = FileWriter(self.home_dir)
+            #log_writer = FileWriter(self.home_dir)
+            log_writer = FileWriter('/var/log')
         self.log = Logger(log_writer)
         self.log.log_info("Pilot Launcher started...")
 

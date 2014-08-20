@@ -4,13 +4,13 @@
 # mount_ephemeral  - Attempts to mount ephemeral storage
 #
 
-LOGFILE=ephemeral_storage.log
-VIRTUAL_DISKS="xvdf vdb xvdb sda2 sdb sdbc"
+LOGFILE=/tmp/ephemeral_storage.log
+VIRTUAL_DISKS="xvdf vda3 vdb xvdb sda2 sdb sdbc"
 
 echo "Attempting to mount ephemeral storage" | tee $LOGFILE
 
 for VD in $VIRTUAL_DISKS ; do
-    echo "Checking /dev/$VD ..." | tee $LOGFILE
+    echo "Checking /dev/$VD ..." | tee --append $LOGFILE
     d=`date`
     fdisk -l /dev/$VD 2>/dev/null | grep Disk >> $LOGFILE
     if [ $? -eq 0 ]; then
@@ -18,18 +18,19 @@ for VD in $VIRTUAL_DISKS ; do
         #echo "Creating filesystem..." | tee $LOGFILE
         #mkfs.ext3 -F -L home /dev/$VD | tee $LOGFILE
 
-        echo "Mounting and mirroring /home..." | tee $LOGFILE
-        mv -v /home /home.orig 2>&1 | tee $LOGFILE
-        mkdir -v /home  2>&1 | tee $LOGFILE
-        mount /dev/$VD /home 2>&1 | tee $LOGFILE
-        cp -avr /home.orig/* /home 2>&1 | tee $LOGFILE
+        echo "Mounting and mirroring /home..." | tee --append $LOGFILE
+        mkdir /home.orig
+        mv -v /home/* /home.orig/ 2>&1 | tee --append $LOGFILE
+        mkdir -v /home  2>&1 | tee --append $LOGFILE
+        mount /dev/$VD /home 2>&1 | tee --append $LOGFILE
+        cp -avr /home.orig/* /home 2>&1 | tee --append $LOGFILE
 
         d=`date`
-        echo "Done with /dev/$VD: $d" | tee $LOGFILE
+        echo "Done with /dev/$VD: $d" | tee --append $LOGFILE
         break
     else
-        echo "No virtual disk seen at /dev/$VD: $d" | tee $LOGFILE
+        echo "No virtual disk seen at /dev/$VD: $d" | tee --append $LOGFILE
     fi
 done
 d=`date`
-echo "Done: $d" | tee $LOGFILE
+echo "Done: $d" | tee --append $LOGFILE
