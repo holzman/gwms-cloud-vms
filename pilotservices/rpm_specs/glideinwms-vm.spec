@@ -8,7 +8,7 @@
 %endif
 
 Name:               glideinwms-vm
-Version:            1.0.2
+Version:            1.0.3
 Release:            1%{?dist}
 
 Summary:            The glideinWMS service that contextualizes a VM
@@ -292,6 +292,9 @@ fi
 %attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-test.ini
 
 %changelog
+* Wed Aug 20 2014 Parag Mhashilkar  1.0.3-1
+- Bug Fix: Fixed issues preventing execution of PRE and POST scripts
+
 * Tue Aug 19 2014 Parag Mhashilkar  1.0.2-1
 - Add vda3 new mount points for ephemeral storage
 - Tee the output of mount_ephemeral script to /tmp directory
