@@ -269,6 +269,7 @@ fi
 %attr(755,root,root) %{_initrddir}/glideinwms-pilot
 %attr(755,root,root) %{python_sitelib}/glideinwms_pilot
 %attr(755,root,root) %{_libexecdir}/glideinwms_pilot/PRE/mount_ephemeral
+%attr(-, glidein_pilot,glidein_pilot) %{_localstatedir}/log/pilot_launcher.log
 
 # For the moment there are no post scripts but we want to include the post directory anyway
 %dir %{_libexecdir}/glideinwms_pilot/POST
