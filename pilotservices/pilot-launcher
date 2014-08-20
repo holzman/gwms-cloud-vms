@@ -113,7 +113,7 @@ def main():
         config = Config(options.config_file)
         config.setup()
         try:
-            # Change to the working directory
+            # Change to the working directory -- GUARANTEE A KNOWN start dir
             config.log.log_info('Changing to: %s' % config.home_dir)
             cd(config.home_dir)
             config.log.log_info('Now in: %s' % config.home_dir)
@@ -125,6 +125,13 @@ def main():
                         float(config.max_script_runtime))
             message = "Running PRE Scripts in ... DONE"
             config.log.log_info(message)
+
+            # Change to the working directory AGAIN -- IMPORTANT
+            # Needed since PRE scripts may move the home area to a
+            # bigger partition
+            config.log.log_info('Changing to: %s' % config.home_dir)
+            cd(config.home_dir)
+            config.log.log_info('Now in: %s' % config.home_dir)
 
             # get and extract the user data - should be a tar file
             config.log.log_info("Retrieving and extracting user data")

@@ -8,7 +8,7 @@
 %endif
 
 Name:               glideinwms-vm
-Version:            1.0.3
+Version:            1.0.4
 Release:            1%{?dist}
 
 Summary:            The glideinWMS service that contextualizes a VM
@@ -294,6 +294,9 @@ fi
 %attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-test.ini
 
 %changelog
+* Wed Aug 20 2014 Parag Mhashilkar  1.0.4-1
+- Bug Fix: Start glidein_startup.sh in glidein_pilot's HOME
+
 * Wed Aug 20 2014 Parag Mhashilkar  1.0.3-1
 - Bug Fix: Fixed issues preventing execution of PRE and POST scripts
 
