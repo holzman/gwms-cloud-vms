@@ -33,6 +33,7 @@ class Config(object):
         # home directory is created by the rpm
         self.home_dir = "/home/glidein_pilot"
         self.glidein_user = "glidein_pilot"
+        self.scratch_dir = "/home/scratchgwms"
 
         # glidein_startup.sh specific attributes
         self.factory_url = ""
@@ -123,5 +124,7 @@ class Config(object):
 
         # Add in the pilot proxy
         environment["X509_USER_PROXY"] = self.proxy_file
-
+        environment["HOME"] = self.home_dir
+        environment["LOGNAME"] = self.glidein_user
+        environment["SCRATCH"] = self.scratch_dir
         return environment

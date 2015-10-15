@@ -142,7 +142,8 @@ def main():
             # dropping privileges
             chown('%s.%s' % (config.glidein_user, config.glidein_user),
                   config.home_dir)
-
+            chown('%s.%s' % (config.glidein_user, config.glidein_user),
+                  config.scratch_dir)
             # drop privileges to the glidein user
             config.log.log_info("Dropping privs to %s" % config.glidein_user)
             drop_privs(config.glidein_user)

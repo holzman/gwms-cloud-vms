@@ -3,11 +3,17 @@
 #
 # mount_ephemeral  - Attempts to mount ephemeral storage
 #
+# HK, October 15 2015 Thursday, now we have a completely different mechamisn
+# to mount the ephemeral store on /home/scratchgwms
 
 LOGFILE=/tmp/ephemeral_storage.log
 VIRTUAL_DISKS="xvdf xvdb vda3 vdb sda2 sdb sdbc"
 
 echo "Attempting to mount ephemeral storage" | tee $LOGFILE
+
+if [ ! -d /home/scratchgwms ]; then
+    mkdir -v       /home/scratchgwms 2>&1 | tee --append $LOGFILE
+fi
 
 for VD in $VIRTUAL_DISKS ; do
     echo "Checking /dev/$VD ..." | tee --append $LOGFILE
@@ -15,15 +21,26 @@ for VD in $VIRTUAL_DISKS ; do
     fdisk -l /dev/$VD 2>/dev/null | grep Disk >> $LOGFILE
     if [ $? -eq 0 ]; then
         echo "Virtual disk seen at /dev/$VD: $d" | tee $LOGFILE
-        #echo "Creating filesystem..." | tee $LOGFILE
-        #mkfs.ext3 -F -L home /dev/$VD | tee $LOGFILE
 
-        echo "Mounting and mirroring /home..." | tee --append $LOGFILE
-        rm -rf /home.orig
-        mv -v /home /home.orig 2>&1 | tee --append $LOGFILE
-        mkdir -v /home  2>&1 | tee --append $LOGFILE
-        mount /dev/$VD /home 2>&1 | tee --append $LOGFILE
-        cp -avr /home.orig/* /home 2>&1 | tee --append $LOGFILE
+#        echo "Mounting and mirroring /home..." | tee --append $LOGFILE
+#        rm -rf /home.orig
+#        mv -v /home /home.orig 2>&1 | tee --append $LOGFILE
+#        mkdir -v /home  2>&1 | tee --append $LOGFILE
+#        mount /dev/$VD /home 2>&1 | tee --append $LOGFILE
+#        cp -avr /home.orig/* /home 2>&1 | tee --append $LOGFILE
+
+        string1=`grep scratchgwms /etc/mtab`
+        if [ -n "$string1" ]; then
+            echo "/home/scratchgwms is currently mounted" | tee --append $LOGFILE
+            (cd /home/scratchgwms && rm -rf *)  2>&1 | tee --append $LOGFILE
+            umount /home/scratchgwms 2>&1 | tee --append $LOGFILE
+        fi
+
+        if [ ! -d /home/scratchgwms ]; then
+            mkdir -v /home/scratchgwms 2>&1 | tee --append $LOGFILE
+        fi
+
+        mount /dev/$VD /home/scratchgwms 2>&1 | tee --append $LOGFILE
 
         d=`date`
         echo "Done with /dev/$VD: $d" | tee --append $LOGFILE

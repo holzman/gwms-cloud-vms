@@ -8,7 +8,7 @@
 %endif
 
 Name:               glideinwms-vm
-Version:            1.0.4
+Version:            1.0.5
 Release:            1%{?dist}
 
 Summary:            The glideinWMS service that contextualizes a VM
@@ -294,6 +294,11 @@ fi
 %attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-test.ini
 
 %changelog
+* Thu Oct 15 2015 Hyunwoo Kim  1.0.5-1
+- Introduce /home/scratchgwms. mount_ephemeral will try to mount an ephemeral store in this new location.
+- If no ephmeral store available, /home/scratchgwms is still used where glidein_startup.sh will run
+- /home/glidein_pilot is still used as the initial space where pilot-launcher does some initializations
+
 * Wed Aug 20 2014 Parag Mhashilkar  1.0.4-1
 - Bug Fix: Start glidein_startup.sh in glidein_pilot's HOME
 
