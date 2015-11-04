@@ -124,7 +124,7 @@ class Config(object):
 
         # Add in the pilot proxy
         environment["X509_USER_PROXY"] = self.proxy_file
-        environment["HOME"] = self.home_dir
-        environment["LOGNAME"] = self.glidein_user
+        #environment["HOME"] = self.home_dir
+        #environment["LOGNAME"] = self.glidein_user
         environment["SCRATCH"] = self.scratch_dir
         return environment
