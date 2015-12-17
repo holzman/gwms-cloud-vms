@@ -8,7 +8,7 @@
 %endif
 
 Name:               glideinwms-vm
-Version:            1.0.6
+Version:            1.0.7
 Release:            1%{?dist}
 
 Summary:            The glideinWMS service that contextualizes a VM
@@ -294,6 +294,10 @@ fi
 %attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-test.ini
 
 %changelog
+* Thu Dec 17 2015 Hyunwoo Kim  1.0.7-1
+- mount_ephemeral will try to format /dev/xvdb with ext4 filesystem when xvdb is EBS in case of c4.* instances
+- Tony Tiradani updated user_data.py to deal with gzip
+
 * Thu Oct 15 2015 Hyunwoo Kim  1.0.6-1
 - Introduce /home/scratchgwms. mount_ephemeral will try to mount an ephemeral store in this new location.
 - If no ephmeral store available, /home/scratchgwms is still used where glidein_startup.sh will run
