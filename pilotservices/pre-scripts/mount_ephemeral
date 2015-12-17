@@ -36,6 +36,15 @@ for VD in $VIRTUAL_DISKS ; do
             mkdir -v $SCRATCHGWMS 2>&1 | tee --append $LOGFILE
         fi
 
+#HK new code begins
+	fsstring=`file -s /dev/$VD | grep filesystem`
+	if [ -z "$fsstring" ]; then
+	    echo "/dev/$VD does not have a filesystem, so we make one" | tee --append $LOGFILE
+	    mkfs -t ext4 /dev/$VD
+	else
+	    echo "/dev/$VD already has a filesystem, we just proceed to mounting it " | tee --append $LOGFILE
+	fi
+#HK new code ends
         mount /dev/$VD $SCRATCHGWMS 2>&1 | tee --append $LOGFILE
 
         d=`date`
