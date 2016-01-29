@@ -8,7 +8,7 @@
 %endif
 
 Name:               glideinwms-vm
-Version:            1.0.7
+Version:            1.0.8
 Release:            1%{?dist}
 
 Summary:            The glideinWMS service that contextualizes a VM
@@ -294,6 +294,9 @@ fi
 %attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-test.ini
 
 %changelog
+* Fri Jan 29 2016 Hyunwoo Kim  1.0.8-1
+- mount_ephemeral will first look for LVM, if found, it will replace /dev/xvdb
+
 * Thu Dec 17 2015 Hyunwoo Kim  1.0.7-1
 - mount_ephemeral will try to format /dev/xvdb with ext4 filesystem when xvdb is EBS in case of c4.* instances
 - Tony Tiradani updated user_data.py to deal with gzip
