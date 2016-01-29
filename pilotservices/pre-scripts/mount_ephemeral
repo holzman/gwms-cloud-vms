@@ -8,6 +8,12 @@
 
 LOGFILE=/tmp/ephemeral_storage.log
 VIRTUAL_DISKS="xvdf xvdb vda3 vdb sda2 sdb sdbc"
+
+fdisk -l /dev/wnscratch/scratchgwms 2>/dev/null | grep Disk >> $LOGFILE
+if [ $? -eq 0 ]; then
+    VIRTUAL_DISKS="xvdf wnscratch/scratchgwms vda3 vdb sda2 sdb sdbc"
+fi
+
 SCRATCHGWMS=/home/scratchgwms
 
 echo "Attempting to mount ephemeral storage" | tee $LOGFILE
@@ -37,7 +43,7 @@ for VD in $VIRTUAL_DISKS ; do
         fi
 
 #HK new code begins
-	fsstring=`file -s /dev/$VD | grep filesystem`
+	fsstring=`file -sL /dev/$VD | grep filesystem`
 	if [ -z "$fsstring" ]; then
 	    echo "/dev/$VD does not have a filesystem, so we make one" | tee --append $LOGFILE
 	    mkfs -t ext4 /dev/$VD
