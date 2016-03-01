@@ -55,7 +55,7 @@ function build_rpms
     #mock -r epel-6-x86_64 --no-clean rebuild $srpm_to_build
     #mock -r epel-5-x86_64 --no-clean rebuild $srpm_to_build
     mock -r epel-6-x86_64 --rebuild $srpm_to_build
-    mock -r epel-5-x86_64 --rebuild $srpm_to_build
+    #mock -r epel-5-x86_64 --rebuild $srpm_to_build
 }
 
 function cleanup
