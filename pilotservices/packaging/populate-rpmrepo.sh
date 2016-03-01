@@ -16,20 +16,21 @@ repo=$1
 #fi
 
 # Check with Parag or Tony to get access to the repo
-repologin="glideinwms@web1.fnal.gov"
-repodir='/var/www/html/files/glideinwms'
+repologin="fnalu.fnal.gov"
+repodir='/web/sites/glideinwms.fnal.gov/htdocs/rpms/'
 
 # Root directory where mock puts the files
 mockdir="/var/lib/mock"
 
-#For now only SL6 support
-versionlist='5 6'
+#For now only EL6 support
+versionlist='el6'
 
 #For now only 64bit support
 archlist='x86_64'
 
 # Create repo for dev (developers) and one for production (operations)
-flavors='prod dev'
+#flavors='release development'
+flavors='development'
 
 #make changes where appropiate (eg: scp new rpms)
 for flavor in $flavors; do
