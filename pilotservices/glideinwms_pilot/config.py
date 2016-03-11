@@ -116,7 +116,7 @@ class Config(object):
 
         try:
             # add in the custom environment
-            for option in self.cp.ini.options("CUSTOM_ENVIRONMENT"):
+            for option in self.ini.cp.options("CUSTOM_ENVIRONMENT"):
                 environment[str(option).upper()] = self.ini.get("CUSTOM_ENVIRONMENT", option)
         except:
             # pylint: disable=W0702
