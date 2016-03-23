@@ -9,7 +9,7 @@
 
 Name:               glideinwms-vm
 Version:            1.0.9
-Release:            1%{?dist}
+Release:            2%{?dist}
 
 Summary:            The glideinWMS service that contextualizes a VM
 Group:              System Environment/Daemons
@@ -294,6 +294,10 @@ fi
 %attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-test.ini
 
 %changelog
+* Wed Mar 23 2016 Parag Mhashilkar<parag@fnal.gov> 1.0.9-1
+- Read the proxy file from user data as last field rather than positional argument
+- Bug Fix: Fixed typo in variable name
+
 * Fri Jan 29 2016 Hyunwoo Kim  1.0.8-1
 - mount_ephemeral will first look for LVM, if found, it will replace /dev/xvdb
 
