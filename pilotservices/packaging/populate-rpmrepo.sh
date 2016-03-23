@@ -23,7 +23,7 @@ repodir='/web/sites/glideinwms.fnal.gov/htdocs/rpms/'
 mockdir="/var/lib/mock"
 
 #For now only EL6 support
-versionlist='el6'
+versionlist='6'
 
 #For now only 64bit support
 archlist='x86_64'
@@ -36,7 +36,7 @@ flavors='development'
 for flavor in $flavors; do
     for version in $versionlist; do
         for arch in $archlist; do
-            workdir="$repodir/$flavor/$version/$arch"
+            workdir="$repodir/$flavor/el$version/$arch"
             sourcedir="$mockdir/epel-$version-$arch/result"
             remote_cmd "mkdir -p $workdir"
             scp $sourcedir/*rpm "$repologin:$workdir"

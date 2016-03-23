@@ -209,15 +209,21 @@ class GlideinWMSUserData(UserData):
                 log_msg = "config.proxy_file : %s" % self.config.proxy_file
                 self.config.log.log_info(self.template % log_msg)
 
-                # get the compressed proxy and write it to a tmp file
-                # yes, the tmp file name is completely predictable, but this isn't
-                # an interactive node and the lifetime of the node is very short
-                # so the risk of attack on this vector is minimal
+                # Get the compressed proxy and write it to a tmp file.
+                # The tmp file name is completely predictable, but this
+                # isn't an interactive node and the lifetime of the node is
+                # very short so the risk of attack on this vector is minimal
+                # HTCondor will attach proxy file passed using the 
+                # ec2_userdata_file at the end. Accessing it as the last
+                # token rather than a fixed positional token gives us
+                # the flexibility to append custom info after the second
+                # token, i.e the extra args token
+               
                 log_msg = "Extracting pilot proxy: from the EC2_USER_DATA"
                 self.config.log.log_info(self.template % log_msg)
-                compressed_proxy = base64.b64decode(userdata[2])
-                # modified by Anthony Tiradani from tmp to gz
-                fd = os.open("%s.gz"  % self.config.proxy_file, os.O_CREAT|os.O_WRONLY, 0600)
+                compressed_proxy = base64.b64decode(userdata[-1:])
+                fd = os.open("%s.gz" % self.config.proxy_file,
+                             os.O_CREAT|os.O_WRONLY, 0600)
                 try:
                     os.write(fd, compressed_proxy)
                 finally:
