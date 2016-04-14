@@ -113,6 +113,13 @@ def main():
         config = Config(options.config_file)
         config.setup()
         try:
+            # we check if this is for EC2 VM, not FermiCloud VM
+            # then run a bash script that starts a background process that checks the metadata URL every 10 seconds 
+            # and send SIGQUIT signal(for fast-shutdown) to condor_master
+            if not subprocess.call('rpm -q glideinwms-vm-ec2', shell=True):
+                spotnoticecmd = "/usr/sbin/check-preempt-wrap.sh"
+                dummypid = run_child( spotnoticecmd, config.log )
+
             # Change to the working directory -- GUARANTEE A KNOWN start dir
             config.log.log_info('Changing to: %s' % config.home_dir)
             cd(config.home_dir)
