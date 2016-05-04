@@ -1,10 +1,11 @@
 #!/bin/bash
 
-if [ 1 = 1 ];
-then
-    preempt_dir=$(mktemp -d)
+#if [ 1 = 1 ];
+#then
 
-    cat <<'EOF' > ${preempt_dir}/check-preemption.sh
+preempt_dir=$(mktemp -d)
+
+cat <<'EOF' > ${preempt_dir}/check-preemption.sh
 #!/bin/bash
 
 while [ 1 ]; do
@@ -20,4 +21,5 @@ EOF
 
 chmod +x ${preempt_dir}/check-preemption.sh
 nohup ${preempt_dir}/check-preemption.sh < /dev/null >& /dev/null &
-fi
+
+#fi
