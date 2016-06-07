@@ -1,13 +1,9 @@
 #!/bin/bash
 
-#if [ 1 = 1 ];
-#then
-
-
-
+# to make sure this script is running in AWS, not in private cloud such as FermiCloud 
 LOGFILE=/tmp/check_spot_out.log
 
-isaws=$(curl --max-time 10 -s http://169.254.169.254/latest/meta-data/placement/availability-zone)
+isaws=$(curl --max-time 5 -s http://169.254.169.254/latest/meta-data/placement/availability-zone)
 returnvalue=$?
 if [ $returnvalue -ne 0 ]
 then
@@ -23,7 +19,6 @@ region=${zone:0:$LZ-1}
 iid=`curl -s http://169.254.169.254/latest/meta-data/instance-id`
 
 isspot=$(aws ec2 describe-instances --region $region --instance-id $iid | grep -i spot)
-#isspot=$(aws ec2 describe-instances --region $region --instance-id $iid | grep VirtualizationType)
 if [ -z "$isspot" ]
 then
     echo "this is not a spot"
@@ -53,5 +48,3 @@ EOF
 echo "Executing the inner script" | tee --append $LOGFILE
 chmod +x ${preempt_dir}/check-preemption.sh
 nohup ${preempt_dir}/check-preemption.sh < /dev/null >& /dev/null &
-
-#fi

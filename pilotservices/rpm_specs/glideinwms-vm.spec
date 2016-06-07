@@ -171,7 +171,7 @@ install -d  $RPM_BUILD_ROOT%{_libexecdir}/glideinwms_pilot/POST
 install -m 0755 pre-scripts/mount_ephemeral $RPM_BUILD_ROOT%{_libexecdir}/glideinwms_pilot/PRE/mount_ephemeral
 
 # install the check spot termination script
-install -m 0755 check-preempt-wrap.sh $RPM_BUILD_ROOT%{_sbindir}/check-preempt-wrap.sh
+install -m 0755 check-preempt-wrap.sh $RPM_BUILD_ROOT%{_libexecdir}/glideinwms_pilot/PRE/check-preempt-wrap.sh
 
 %clean
 [ ${RPM_BUILD_ROOT} != "/" ] && rm -rf ${RPM_BUILD_ROOT}
@@ -282,7 +282,7 @@ fi
 %files ec2
 %defattr(-,root,root,-)
 %attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-ec2.ini
-%attr(755,root,root) %{_sbindir}/check-preempt-wrap.sh
+%attr(755,root,root) %{_libexecdir}/glideinwms_pilot/PRE/check-preempt-wrap.sh
 
 %files nimbus
 %defattr(-,root,root,-)
@@ -297,9 +297,8 @@ fi
 %attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-test.ini
 
 %changelog
-* Thu Apr 14 2016 Hyunwoo Kim<hyunwoo@fnal.gov> 1.0.10-1
-- Add a new file check-preempt-wrap.sh in glideinwms-vm-ec2 package under /usr/sbin/ directory
-- Modify pilot-launcher to run this new script as a backgroup process
+* Thu June 07 2016 Hyunwoo Kim<hyunwoo@fnal.gov> 1.0.10-1
+- Add a new file check-preempt-wrap.sh in glideinwms-vm-ec2 package under /usr/libexec/glideinwms/PRE/ directory
 
 * Wed Mar 23 2016 Parag Mhashilkar<parag@fnal.gov> 1.0.9-1
 - Read the proxy file from user data as last field rather than positional argument
