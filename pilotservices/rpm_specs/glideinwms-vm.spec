@@ -171,7 +171,7 @@ install -d  $RPM_BUILD_ROOT%{_libexecdir}/glideinwms_pilot/POST
 install -m 0755 pre-scripts/mount_ephemeral $RPM_BUILD_ROOT%{_libexecdir}/glideinwms_pilot/PRE/mount_ephemeral
 
 # install the check spot termination script
-install -m 0755 check-preempt-wrap.sh $RPM_BUILD_ROOT%{_libexecdir}/glideinwms_pilot/PRE/check-preempt-wrap.sh
+install -m 0755 pre-scripts/check-preempt-wrap.sh $RPM_BUILD_ROOT%{_libexecdir}/glideinwms_pilot/PRE/check-preempt-wrap.sh
 
 %clean
 [ ${RPM_BUILD_ROOT} != "/" ] && rm -rf ${RPM_BUILD_ROOT}
