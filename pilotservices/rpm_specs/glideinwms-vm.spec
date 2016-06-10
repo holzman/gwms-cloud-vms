@@ -8,8 +8,8 @@
 %endif
 
 Name:               glideinwms-vm
-Version:            1.0.9
-Release:            2%{?dist}
+Version:            1.0.10
+Release:            1%{?dist}
 
 Summary:            The glideinWMS service that contextualizes a VM
 Group:              System Environment/Daemons
@@ -297,10 +297,11 @@ fi
 %attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-test.ini
 
 %changelog
-* Thu June 07 2016 Hyunwoo Kim<hyunwoo@fnal.gov> 1.0.10-1
+* Thu June 09 2016 Parag Mhashilkar <parag@fnal.gov> 1.0.10-1
+- Bug Fix: Correctly extract proxy as last element
 - Add a new file check-preempt-wrap.sh in glideinwms-vm-ec2 package under /usr/libexec/glideinwms/PRE/ directory
 
-* Wed Mar 23 2016 Parag Mhashilkar<parag@fnal.gov> 1.0.9-1
+* Wed Mar 23 2016 Parag Mhashilkar <parag@fnal.gov> 1.0.9-1
 - Read the proxy file from user data as last field rather than positional argument
 - Bug Fix: Fixed typo in variable name
 
