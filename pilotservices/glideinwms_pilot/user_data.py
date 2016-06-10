@@ -221,7 +221,7 @@ class GlideinWMSUserData(UserData):
                
                 log_msg = "Extracting pilot proxy: from the EC2_USER_DATA"
                 self.config.log.log_info(self.template % log_msg)
-                compressed_proxy = base64.b64decode(userdata[-1:])
+                compressed_proxy = base64.b64decode(userdata[-1])
                 fd = os.open("%s.gz" % self.config.proxy_file,
                              os.O_CREAT|os.O_WRONLY, 0600)
                 try:
