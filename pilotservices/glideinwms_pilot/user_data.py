@@ -81,6 +81,8 @@ class UserData(object):
             self.nimbus_retrieve_user_data()
         elif context_type == CONTEXT_TYPE_OPENNEBULA:
             self.one_retrieve_user_data()
+        elif context_type == CONTEXT_TYPE_GCE:
+            self.gce_retrieve_user_data()
 
 
     def ec2_retrieve_user_data(self):
@@ -92,6 +94,7 @@ class UserData(object):
             self.config.userdata_file, _ = urllib.urlretrieve(user_data_url, self.config.userdata_file)
         except Exception, ex:
             raise UserDataError("Error retrieving User Data(context type: EC2): %s\n" % str(ex))
+
 
     def one_retrieve_user_data(self):
         try:
@@ -116,6 +119,7 @@ class UserData(object):
         except Exception, ex:
             raise UserDataError("Error retrieving User Data (context type: OPENNEBULA): %s\n" % str(ex))
 
+
     def nimbus_retrieve_user_data(self):
         try:
             url_file = open(self.config.nimbus_url_file, 'r')
@@ -126,6 +130,23 @@ class UserData(object):
             raise UserDataError("Could not open Nimbus meta-data url file (context type: NIMBUS): %s\n" % str(ex))
         except Exception, ex:
             raise UserDataError("Error retrieving User Data (context type: NIMBUS): %s\n" % str(ex))
+
+
+    def gce_retrieve_user_data(self):
+        try:
+            metadata_url = self.config.metadata_url
+            # touch the file so that it exists with proper permissions
+            vm_utils.touch(self.config.userdata_file, mode=0600)
+            # Now retrieve userdata 
+            for attribute in ('glideinwms_metadata', 'glidein_credentials'):
+                request = urllib2.Request('%s/%s' % (metadata_url, attribute),
+                                          None, {'Metadata-Flavor': 'Google'})
+                response = urllib2.urlopen(request)
+                results = response.read()
+                with open(self.config.userdata_file, 'a') as userdata_fd:
+                    user_data_fd.write(results)
+        except Exception, ex:
+            raise UserDataError("Error retrieving User Data(context type: GCE): %s\n" % str(ex))
 
 
 class GlideinWMSUserData(UserData):
