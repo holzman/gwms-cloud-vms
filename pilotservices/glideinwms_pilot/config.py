@@ -12,9 +12,10 @@ from simple_logging import ConsoleWriter
 from contextualization_types import CONTEXT_TYPE_EC2
 from contextualization_types import CONTEXT_TYPE_NIMBUS
 from contextualization_types import CONTEXT_TYPE_OPENNEBULA
+from contextualization_types import CONTEXT_TYPE_GCE
 
 class Config(object):
-    valid_context_types = [CONTEXT_TYPE_EC2, CONTEXT_TYPE_NIMBUS, CONTEXT_TYPE_OPENNEBULA]
+    valid_context_types = [CONTEXT_TYPE_EC2, CONTEXT_TYPE_NIMBUS, CONTEXT_TYPE_OPENNEBULA, CONTEXT_TYPE_GCE]
 
     def __init__(self, config_ini="/etc/glideinwms/glidein-pilot.ini"):
         if not os.path.exists(config_ini):
@@ -62,6 +63,8 @@ class Config(object):
                 self.nimbus_url_file = self.ini.get("DEFAULT", "nimbus_url_file")
             elif self.contextualization_type == CONTEXT_TYPE_OPENNEBULA:
                 self.one_user_data_file = self.ini.get("DEFAULT", "one_user_data_file")
+            elif self.contextualization_type == CONTEXT_TYPE_GCE:
+                self.metadata_url = self.ini.get("DEFAULT", "metadata_url")
         else:
             raise ConfigError("configured context type not valid")
 

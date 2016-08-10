@@ -1,4 +1,5 @@
 import urllib
+import urllib2
 import subprocess
 import vm_utils
 import ini_handler
@@ -15,6 +16,7 @@ from errors import UserDataError
 from contextualization_types import CONTEXT_TYPE_EC2
 from contextualization_types import CONTEXT_TYPE_NIMBUS
 from contextualization_types import CONTEXT_TYPE_OPENNEBULA
+from contextualization_types import CONTEXT_TYPE_GCE
 
 def smart_bool(s):
     if s is True or s is False:
@@ -144,7 +146,7 @@ class UserData(object):
                 response = urllib2.urlopen(request)
                 results = response.read()
                 with open(self.config.userdata_file, 'a') as userdata_fd:
-                    user_data_fd.write(results)
+                    userdata_fd.write(results)
         except Exception, ex:
             raise UserDataError("Error retrieving User Data(context type: GCE): %s\n" % str(ex))
 
