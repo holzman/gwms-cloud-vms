@@ -297,7 +297,7 @@ fi
 %attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-gce.ini
 
 %changelog
-* Thu Aug 11 2016 Parag Mhashilkar <parag@fnal.gov> 2-1
+* Fri Aug 12 2016 Parag Mhashilkar <parag@fnal.gov> 2-0.1.rc1
 - Add support for Google Compute Engine
 - Changed the format of userdata. Works with GlideinWMS v3.3+
 - Unified the config attribute names used across different cloud types
