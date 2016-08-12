@@ -13,10 +13,7 @@ import base64
 from errors import PilotError
 from errors import UserDataError
 
-from contextualization_types import CONTEXT_TYPE_EC2
-from contextualization_types import CONTEXT_TYPE_NIMBUS
-from contextualization_types import CONTEXT_TYPE_OPENNEBULA
-from contextualization_types import CONTEXT_TYPE_GCE
+from contextualization_types import CONTEXTS
 
 def smart_bool(s):
     if s is True or s is False:
@@ -26,135 +23,152 @@ def smart_bool(s):
     return not s in ['false', 'f', 'n', '0', '']
 
 
-def opennebula_context_disk():
-    context_disk = "/dev/sr0"
-    distname_pattern = [
-        'red hat*',
-        'redhat*',
-        'scientific linux*',
-        'centos*',
-    ]
+class MetadataManager(object):
+    """
+    Base class responsible for interacting with the metadata service
+    """
 
-    version_map = {
-        '5': '/dev/hdc',
-        '6': '/dev/sr0',
-        '7': '/dev/sr0',
-    }
-
-    try:
-        distro = platform.linux_distribution()
-    except:
-        distro = platform.dist()
-
-    regex = "(" + ")|(".join(distname_pattern) + ")"
-    if re.match(regex, distro[0].lower()):
-        context_disk = version_map.get(distro[1][0], context_disk)
-
-    return context_disk
-
-
-def one_ec2_user_data(contextfile):
-    ec2_user_data = ''
-    fd = None
-    try:
-        fd = open(contextfile, 'r')
-        for line in fd.readlines():
-            if line.startswith('EC2_USER_DATA='):
-                ec2_user_data = line[(line.find('=')+1):].strip()
-                break
-    finally:
-        if fd:
-            fd.close()
-
-    return ec2_user_data
-
-
-class UserData(object):
     def __init__(self, config):
         self.config = config
-        self.config.log.log_info('Created UserData object')
-
-    def retrieve(self):
-        context_type = self.config.contextualization_type.upper()
-        self.config.log.log_info('Retrieving ec2_user_data for %s' % context_type)
-        if context_type == CONTEXT_TYPE_EC2:
-            self.ec2_retrieve_user_data()
-        elif context_type == CONTEXT_TYPE_NIMBUS:
-            self.nimbus_retrieve_user_data()
-        elif context_type == CONTEXT_TYPE_OPENNEBULA:
-            self.one_retrieve_user_data()
-        elif context_type == CONTEXT_TYPE_GCE:
-            self.gce_retrieve_user_data()
+        self.userdata_attributes = (
+            'glideinwms_metadata',
+            'glidein_credentials'
+        )
+        self.config.log.log_info('Created MetadataManager object for contextualize_protocol %s' % self.config.contextualization_type)
 
 
-    def ec2_retrieve_user_data(self):
+    def write_userdata_file(self):
+        # Retrieve the userdata in string format
+        userdata = self.retrieve_instance_userdata()
+        # Remove the userdata_attributes from the string
+        for attribute in self.userdata_attributes:
+            userdata = userdata.replace('%s='%attribute, '')
         try:
-            user_data_url = self.config.ec2_url
+            with open(self.config.userdata_file, 'w') as fd:
+                fd.write(userdata)
+        except Exception, ex:
+            raise UserDataError("Error writing to userdata file %s: %s\n" % (self.config.userdata_file, str(ex)))
+
+
+    def retrieve_instance_userdata(self):
+        raise NotImplementedError('Implementation for contextualize_protocol %s not available' % self.contextualization_type)
+
+
+class EC2MetadataManager(MetadataManager):
+    """
+    Class to interact with the EC2 metadata service
+    """
+
+    def retrieve_instance_userdata(self):
+        self.config.log.log_info('Retrieving instance_userdata for contextualize_protocol %s' % self.config.contextualization_type)
+        try:
             # touch the file so that it exists with proper permissions
             vm_utils.touch(self.config.userdata_file, mode=0600)
             # Now retrieve userdata into the file
-            self.config.userdata_file, _ = urllib.urlretrieve(user_data_url, self.config.userdata_file)
+            request = urllib2.Request(self.config.instance_userdata_url)
+            response = urllib2.urlopen(request)
+            userdata = response.read()
         except Exception, ex:
-            raise UserDataError("Error retrieving User Data(context type: EC2): %s\n" % str(ex))
+            raise UserDataError("Error retrieving instance userdata contextualize_protocol %s: %s\n" % (self.contextualization_type, str(ex)))
+        return userdata
 
 
-    def one_retrieve_user_data(self):
+class OneMetadataManager(MetadataManager):
+    """
+    Class to interact with the OpenNebula metadata service
+    """
+
+    def retrieve_instance_userdata(self):
+        self.config.log.log_info('Retrieving instance_userdata for contextualize_protocol %s' % self.config.contextualization_type)
+        context_disk = self.one_context_disk()
         try:
             # Mount cdrom drive... OpenNebula contextualization unmounts it
-            self.config.log.log_info('Mounting opennebula context disk %s' % opennebula_context_disk())
-            mount_cmd = ["mount", "-t", "iso9660", opennebula_context_disk(), "/mnt"]
+            self.config.log.log_info('Mounting opennebula context disk %s' % context_disk)
+            mount_cmd = ["mount", "-t", "iso9660", context_disk, "/mnt"]
             subprocess.call(mount_cmd)
 
             # copy the OpenNebula userdata file
-            self.config.log.log_info('Reading context file: %s' % self.config.one_user_data_file)
+            self.config.log.log_info('Reading context file: %s' % self.config.one_userdata_file)
             vm_utils.touch(self.config.userdata_file, mode=0600)
-            fd = open(self.config.userdata_file, 'w')
-            user_data = base64.b64decode(one_ec2_user_data(self.config.one_user_data_file))
-            self.config.log.log_info('Writing User data')
-            # Only write to logs for debugging purposes.
-            # Writing ec2_user_data to logs is a security issue.
-            #self.config.log.log_info('Writing User data %s' % user_data)
-            fd.write(user_data)
-            fd.close()
+            userdata = base64.b64decode(self.read_one_userdata())
             umount_cmd = ["umount", "/mnt"]
             subprocess.call(umount_cmd)
         except Exception, ex:
-            raise UserDataError("Error retrieving User Data (context type: OPENNEBULA): %s\n" % str(ex))
+            raise UserDataError("Error retrieving instance userdata contextualize_protocol %s: %s\n" % (self.contextualization_type, str(ex)))
+        return userdata
 
 
-    def nimbus_retrieve_user_data(self):
+    def one_context_disk(self):
+        context_disk = "/dev/sr0"
+        distname_pattern = [
+            'red hat*',
+            'redhat*',
+            'scientific linux*',
+            'centos*',
+        ]
+
+        version_map = {
+            '5': '/dev/hdc',
+            '6': '/dev/sr0',
+            '7': '/dev/sr0',
+        }
+
         try:
-            url_file = open(self.config.nimbus_url_file, 'r')
-            url = url_file.read().strip()
-            user_data_url = "%s/2007-01-19/user-data" % url
-            self.config.userdata_file, _ = urllib.urlretrieve(user_data_url, self.config.userdata_file)
-        except IOError, ex:
-            raise UserDataError("Could not open Nimbus meta-data url file (context type: NIMBUS): %s\n" % str(ex))
-        except Exception, ex:
-            raise UserDataError("Error retrieving User Data (context type: NIMBUS): %s\n" % str(ex))
+            distro = platform.linux_distribution()
+        except:
+            distro = platform.dist()
+
+        regex = "(" + ")|(".join(distname_pattern) + ")"
+        if re.match(regex, distro[0].lower()):
+            context_disk = version_map.get(distro[1][0], context_disk)
+
+        return context_disk
 
 
-    def gce_retrieve_user_data(self):
+    def read_one_userdata(self):
+        userdata = ''
+        with open(self.config.one_userdata_file, 'r') as fd:
+            for line in fd.readlines():
+                if line.startswith('EC2_USER_DATA='):
+                    userdata = line[(line.find('=')+1):].strip()
+                    break
+        return userdata
+
+
+class NimbusMetadataManager(EC2MetadataManager):
+    """
+    Class to interact with the Nimbus metadata service
+    """
+    pass
+
+
+class GCEMetadataManager(MetadataManager):
+    """
+    Class to interact with the Nimbus metadata service
+    """
+
+    def retrieve_instance_userdata(self):
+        self.config.log.log_info('Retrieving instance_userdata for contextualize_protocol %s' % self.config.contextualization_type)
         try:
             metadata_url = self.config.metadata_url
             # touch the file so that it exists with proper permissions
             vm_utils.touch(self.config.userdata_file, mode=0600)
             # Now retrieve userdata 
-            for attribute in ('glideinwms_metadata', 'glidein_credentials'):
+            userdata = {}
+            for attribute in self.userdata_attributes:
                 request = urllib2.Request('%s/%s' % (metadata_url, attribute),
                                           None, {'Metadata-Flavor': 'Google'})
                 response = urllib2.urlopen(request)
-                results = response.read()
-                with open(self.config.userdata_file, 'a') as userdata_fd:
-                    userdata_fd.write(results)
+                userdata[attribute] = response.read()
         except Exception, ex:
-            raise UserDataError("Error retrieving User Data(context type: GCE): %s\n" % str(ex))
+            raise UserDataError("Error retrieving instance userdata contextualize_protocol %s: %s\n" % (self.contextualization_type, str(ex)))
+        return userdata['glideinwms_metadata'] + userdata['glidein_credentials']
 
 
-class GlideinWMSUserData(UserData):
+class GlideinWMSUserData:
     def __init__(self, config):
-        super(GlideinWMSUserData, self).__init__(config)
-        self.retrieve()
+        md_manager = get_metadata_manager(config)
+        md_manager.write_userdata_file()
         self.template = "GlideinWMSUserData :: %s"
 
     def extract_user_data(self):
@@ -178,7 +192,7 @@ class GlideinWMSUserData(UserData):
                 userdata = userdata.split(delimiter)
 
                 # get and process the pilot ini file
-                log_msg = "Extracting ini file from the EC2_USER_DATA"
+                log_msg = "Extracting ini file from the USERDATA"
                 self.config.log.log_info(self.template % log_msg)
                 pilot_ini = base64.b64decode(userdata[0])
                 vm_utils.touch(self.config.ini_file, mode=0600)
@@ -292,3 +306,20 @@ class GlideinWMSUserData(UserData):
         except Exception, ex:
             raise PilotError("Error extracting User Data: %s\n" % str(ex))
 
+
+################################################################################
+# Helper functions that do not need to change when supporting new context
+# Assumes certain class naming conventions
+################################################################################
+
+def get_metadata_manager(config):
+    """
+    Do a minimal read of the config to identify context type and create
+    config object for appropriate context
+    """
+
+    context = config.contextualization_type
+    metadata_manager_class = '%sMetadataManager' % context
+    if not (config_class in globals()):
+        raise NotImplementedError('Implementation for %s not available' % context)
+    return (globals()[metadata_manager_class])(config)

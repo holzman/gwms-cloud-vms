@@ -1,5 +1,4 @@
 import os
-
 import ini_handler
 
 from errors import ConfigError
@@ -9,13 +8,14 @@ from simple_logging import FileWriter
 from simple_logging import SyslogWriter
 from simple_logging import ConsoleWriter
 
-from contextualization_types import CONTEXT_TYPE_EC2
-from contextualization_types import CONTEXT_TYPE_NIMBUS
-from contextualization_types import CONTEXT_TYPE_OPENNEBULA
-from contextualization_types import CONTEXT_TYPE_GCE
+from contextualization_types import CONTEXTS
+from contextualization_types import is_context_valid
 
 class Config(object):
-    valid_context_types = [CONTEXT_TYPE_EC2, CONTEXT_TYPE_NIMBUS, CONTEXT_TYPE_OPENNEBULA, CONTEXT_TYPE_GCE]
+    """
+    Base class for the handling configuration
+    Derived class needs to implement contextualization logic
+    """
 
     def __init__(self, config_ini="/etc/glideinwms/glidein-pilot.ini"):
         if not os.path.exists(config_ini):
@@ -23,17 +23,20 @@ class Config(object):
 
         self.ini = ini_handler.Ini(config_ini)
 
+        self.contextualization_type = self.ini.get("DEFAULT", "contextualize_protocol")
+        if self.contextualization_type is not None:
+            self.contextualization_type = self.contextualization_type.upper()
         self.default_max_lifetime = self.ini.get("DEFAULT", "default_max_lifetime", "172800") # 48 hours
-        self.max_lifetime = self.default_max_lifetime  # can be overridden
+        self.max_lifetime = self.default_max_lifetime
         self.disable_shutdown = self.ini.getBoolean("DEFAULT", "disable_shutdown", False)
         self.max_script_runtime = self.ini.get("DEFAULT", "max_script_runtime", "60")
 
         self.pre_script_dir = self.ini.get("DIRECTORIES", "pre_script_dir", "/usr/libexec/glideinwms_pilot/PRE")
         self.post_script_dir = self.ini.get("DIRECTORIES", "post_script_dir", "/usr/libexec/glideinwms_pilot/POST")
 
-        # home directory is created by the rpm
-        self.home_dir = "/home/glidein_pilot"
         self.glidein_user = "glidein_pilot"
+        # home directory is created by the rpm
+        self.home_dir = os.path.expanduser('~%s' % self.glidein_user)
         self.scratch_dir = "/home/scratchgwms"
 
         # glidein_startup.sh specific attributes
@@ -42,10 +45,12 @@ class Config(object):
         self.proxy_file = ""
         self.pilot_args = ""
 
+
     def setup(self):
         self.setup_logging()
         self.setup_pilot_files()
         self.setup_contextualization()
+
 
     def setup_pilot_files(self):
         self.ini_file = "%s/glidein_userdata" % self.home_dir
@@ -53,20 +58,16 @@ class Config(object):
         self.log.log_info("Default ini file: %s" % self.ini_file)
         self.log.log_info("Default userdata file: %s" % self.userdata_file)
 
-    def setup_contextualization(self):
-        self.contextualization_type = self.ini.get("DEFAULT", "contextualize_protocol")
+
+    def validate_contextualization(self):
         self.log.log_info("Contextualization Type identified as: %s" % self.contextualization_type)
-        if self.contextualization_type in Config.valid_context_types:
-            if self.contextualization_type == CONTEXT_TYPE_EC2:
-                self.ec2_url = self.ini.get("DEFAULT", "ec2_url")
-            elif self.contextualization_type == CONTEXT_TYPE_NIMBUS:
-                self.nimbus_url_file = self.ini.get("DEFAULT", "nimbus_url_file")
-            elif self.contextualization_type == CONTEXT_TYPE_OPENNEBULA:
-                self.one_user_data_file = self.ini.get("DEFAULT", "one_user_data_file")
-            elif self.contextualization_type == CONTEXT_TYPE_GCE:
-                self.metadata_url = self.ini.get("DEFAULT", "metadata_url")
-        else:
-            raise ConfigError("configured context type not valid")
+        if not is_context_valid(self.contextualization_type):
+            raise ConfigError("context_type %s not in the supported list %s" % (self.contextualization_type, valid_contexts())
+
+
+    def setup_contextualization(self):
+        raise NotImplementedError('Implementation for contextualize_protocol %s not available' % self.contextualization_type)
+
 
     def setup_logging(self):
         log_writer = None
@@ -87,6 +88,7 @@ class Config(object):
         self.log = Logger(log_writer)
         self.log.log_info("Pilot Launcher started...")
 
+
     def export_custom_env(self):
         """
         @returns: string containing the shell (sh, bash, etc) directives to 
@@ -101,6 +103,7 @@ class Config(object):
             # pylint: disable=W0702
             pass
         return environment
+
 
     def get_custom_env(self):
         """
@@ -131,3 +134,74 @@ class Config(object):
         #environment["LOGNAME"] = self.glidein_user
         environment["SCRATCH"] = self.scratch_dir
         return environment
+
+
+class EC2Config(Config):
+    """
+    Class for AWS EC2 pilot config
+    """
+
+    def setup_contextualization(self):
+        self.validate_contextualization()
+        self.metadata_service = self.ini.get("DEFAULT", "metadata_service")
+        self.instance_metadata_url = self.ini.get("DEFAULT", "instance_metadata_url")
+        self.instance_userdata_url = self.ini.get("DEFAULT", "instance_userdata_url")
+
+
+class NimbusConfig(Config):
+    """
+    Class for Nimbus pilot config
+    """
+
+    def setup_contextualization(self):
+        self.validate_contextualization()
+        self.metadata_service_url_file = self.ini.get("DEFAULT", "metadata_service_url_file")
+        with open(self.metadata_service_url_file, 'r') as fd:
+            url = fd.read().strip()
+        self.metadata_service = url
+        self.instance_userdata_url = '%s/current/user-data' % url
+
+
+class OneConfig(Config):
+    """
+    Class for OpenNebula pilot config
+    """
+
+    def setup_contextualization(self):
+        self.validate_contextualization()
+        self.one_userdata_file = self.ini.get("DEFAULT", "one_userdata_file")
+
+
+class GCEConfig(EC2Config):
+    """
+    Class for Google Compute Engine pilot config
+    Currently with unified config, config objects between ec2 and gce are
+    identical
+    """
+    pass
+
+
+###############################################################################
+# Helper functions that do not need to change when supporting new context
+# Assumes certain class naming conventions
+###############################################################################
+
+get_config(config_ini='/etc/glideinwms/glidein-pilot.ini'):
+    """
+    Do a minimal read of the config to identify context type and create
+    config object for appropriate context
+    """
+
+    if not os.path.exists(config_ini):
+        raise ConfigError("%s does not exist" % config_ini)
+
+    ini = ini_handler.Ini(config_ini)
+    context_type = self.ini.get("DEFAULT", "context_type")
+
+    context = CONTEXTS.get(context_type)
+    if context is None:
+        raise ConfigError("context_type %s not in the supported list %s" % (context_type, valid_contexts())
+    config_class = '%sConfig' % context
+    if not (config_class in globals()):
+        raise NotImplementedError('Implementation for %s not available' % context)
+    return (globals()[config_class])(config_ini=config_ini)

@@ -9,9 +9,26 @@ Valid Contextualization Types
           serve the user-data, but they require an extra step.  You must look in
           the /var/nimbus-metadata-server-url file to determine the address of 
           the meta-data server.
+          NOT SUPPORTED ANY MORE
 
+    GCE
+
+    OPENNEBULA
 """ 
-CONTEXT_TYPE_EC2 = "EC2"
-CONTEXT_TYPE_NIMBUS = "NIMBUS"
-CONTEXT_TYPE_OPENNEBULA = "OPENNEBULA"
-CONTEXT_TYPE_GCE = "GCE"
+
+
+# Code for Nimbus is experimental and was written several years back
+# It is most likely broken now so disable it until more testing is done
+CONTEXTS = {
+    'EC2': 'EC2',
+    #'NIMBUS': 'Nimbus',
+    'OPENNEBULA': 'One',
+    'GCE': 'GCE'
+}
+
+def is_context_valid(context):
+    return (context.upper() in CONTEXT_TYPES)
+
+
+def valid_contexts():
+    return CONTEXTS.keys()

@@ -8,8 +8,8 @@
 %endif
 
 Name:               glideinwms-vm
-Version:            1.0.10
-Release:            1%{?dist}
+Version:            2
+Release:            0.1.rc1%{?dist}
 
 Summary:            The glideinWMS service that contextualizes a VM
 Group:              System Environment/Daemons
@@ -77,16 +77,16 @@ Configures the glideinmws-vm-core package to use the opennebula style of
 user data retrieval.
 
 
-%package nimbus
-Summary:            The glideinWMS service that contextualizes a VM
-Requires:           glideinwms-vm-core >= %{version}-%{release}
-Group:              System Environment/Daemons
+#%package nimbus
+#Summary:            The glideinWMS service that contextualizes a VM
+#Requires:           glideinwms-vm-core >= %{version}-%{release}
+#Group:              System Environment/Daemons
 
-%description nimbus
-glideinWMS pilot launcher service
+#%description nimbus
+#glideinWMS pilot launcher service
 
-Configures the glideinmws-vm-core package to use the nimbus style of user data 
-retrieval.
+#Configures the glideinmws-vm-core package to use the nimbus style of user data 
+#retrieval.
 
 %package test
 Summary:            The glideinWMS service that contextualizes a VM
@@ -158,7 +158,7 @@ install -m 0755 pilot-launcher $RPM_BUILD_ROOT%{_sbindir}/pilot-launcher
 
 # install the ini files
 install -d  $RPM_BUILD_ROOT%{_sysconfdir}/glideinwms
-install -m 0755 glidein-pilot-nimbus.ini $RPM_BUILD_ROOT%{_sysconfdir}/glideinwms/glidein-pilot-nimbus.ini
+#install -m 0755 glidein-pilot-nimbus.ini $RPM_BUILD_ROOT%{_sysconfdir}/glideinwms/glidein-pilot-nimbus.ini
 install -m 0755 glidein-pilot-ec2.ini $RPM_BUILD_ROOT%{_sysconfdir}/glideinwms/glidein-pilot-ec2.ini
 install -m 0755 glidein-pilot-one.ini $RPM_BUILD_ROOT%{_sysconfdir}/glideinwms/glidein-pilot-one.ini
 install -m 0755 glidein-pilot-test.ini $RPM_BUILD_ROOT%{_sysconfdir}/glideinwms/glidein-pilot-test.ini
@@ -201,10 +201,10 @@ ln -s %{_sysconfdir}/glideinwms/glidein-pilot-ec2.ini %{_sysconfdir}/glideinwms/
 # create a symbolic link to the file using a common name
 ln -s %{_sysconfdir}/glideinwms/glidein-pilot-one.ini %{_sysconfdir}/glideinwms/glidein-pilot.ini
 
-%post nimbus
+#%post nimbus
 
 # install the ini
-ln -s %{_sysconfdir}/glideinwms/glidein-pilot-nimbus.ini %{_sysconfdir}/glideinwms/glidein-pilot.ini
+#ln -s %{_sysconfdir}/glideinwms/glidein-pilot-nimbus.ini %{_sysconfdir}/glideinwms/glidein-pilot.ini
 
 %post test
 
@@ -246,14 +246,14 @@ if [ "$1" = "0" ] ; then
     rm -rf %{_sysconfdir}/glideinwms/glidein-pilot-one.ini
 fi
 
-%preun nimbus
+#%preun nimbus
 # $1 = 0 - Action is uninstall
 # $1 = 1 - Action is upgrade
 
-if [ "$1" = "0" ] ; then
-    unlink %{_sysconfdir}/glideinwms/glidein-pilot.ini
-    rm -rf %{_sysconfdir}/glideinwms/glidein-pilot-nimbus.ini
-fi
+#if [ "$1" = "0" ] ; then
+#    unlink %{_sysconfdir}/glideinwms/glidein-pilot.ini
+#    rm -rf %{_sysconfdir}/glideinwms/glidein-pilot-nimbus.ini
+#fi
 
 %preun test
 # $1 = 0 - Action is uninstall
@@ -284,9 +284,9 @@ fi
 %attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-ec2.ini
 %attr(755,root,root) %{_libexecdir}/glideinwms_pilot/PRE/check-preempt-wrap.sh
 
-%files nimbus
-%defattr(-,root,root,-)
-%attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-nimbus.ini
+#%files nimbus
+#%defattr(-,root,root,-)
+#%attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-nimbus.ini
 
 %files one
 %defattr(-,root,root,-)
