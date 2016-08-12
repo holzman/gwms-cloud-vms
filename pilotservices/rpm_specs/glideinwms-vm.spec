@@ -88,16 +88,16 @@ user data retrieval.
 #Configures the glideinmws-vm-core package to use the nimbus style of user data 
 #retrieval.
 
-%package test
-Summary:            The glideinWMS service that contextualizes a VM
-Requires:           glideinwms-vm-core >= %{version}-%{release}
-Group:              System Environment/Daemons
+#%package test
+#Summary:            The glideinWMS service that contextualizes a VM
+#Requires:           glideinwms-vm-core >= %{version}-%{release}
+#Group:              System Environment/Daemons
 
-%description test
-glideinWMS pilot launcher service
+#%description test
+#glideinWMS pilot launcher service
 
-Configures the glideinmws-vm-core package to use the ec2 style of user data 
-retrieval. However, VM shutdown is DISABLED.
+#Configures the glideinmws-vm-core package to use the ec2 style of user data 
+#retrieval. However, VM shutdown is DISABLED.
 
 
 %prep
@@ -161,7 +161,7 @@ install -d  $RPM_BUILD_ROOT%{_sysconfdir}/glideinwms
 #install -m 0755 glidein-pilot-nimbus.ini $RPM_BUILD_ROOT%{_sysconfdir}/glideinwms/glidein-pilot-nimbus.ini
 install -m 0755 glidein-pilot-ec2.ini $RPM_BUILD_ROOT%{_sysconfdir}/glideinwms/glidein-pilot-ec2.ini
 install -m 0755 glidein-pilot-one.ini $RPM_BUILD_ROOT%{_sysconfdir}/glideinwms/glidein-pilot-one.ini
-install -m 0755 glidein-pilot-test.ini $RPM_BUILD_ROOT%{_sysconfdir}/glideinwms/glidein-pilot-test.ini
+#install -m 0755 glidein-pilot-test.ini $RPM_BUILD_ROOT%{_sysconfdir}/glideinwms/glidein-pilot-test.ini
 
 # install the PRE and POST script dirs
 install -d  $RPM_BUILD_ROOT%{_libexecdir}/glideinwms_pilot/PRE
@@ -206,10 +206,10 @@ ln -s %{_sysconfdir}/glideinwms/glidein-pilot-one.ini %{_sysconfdir}/glideinwms/
 # install the ini
 #ln -s %{_sysconfdir}/glideinwms/glidein-pilot-nimbus.ini %{_sysconfdir}/glideinwms/glidein-pilot.ini
 
-%post test
+#%post test
 
 # install the ini
-ln -s %{_sysconfdir}/glideinwms/glidein-pilot-test.ini %{_sysconfdir}/glideinwms/glidein-pilot.ini
+#ln -s %{_sysconfdir}/glideinwms/glidein-pilot-test.ini %{_sysconfdir}/glideinwms/glidein-pilot.ini
 
 
 ###############################################################################
@@ -255,14 +255,14 @@ fi
 #    rm -rf %{_sysconfdir}/glideinwms/glidein-pilot-nimbus.ini
 #fi
 
-%preun test
+#%preun test
 # $1 = 0 - Action is uninstall
 # $1 = 1 - Action is upgrade
 
-if [ "$1" = "0" ] ; then
-    unlink %{_sysconfdir}/glideinwms/glidein-pilot.ini
-    rm -rf %{_sysconfdir}/glideinwms/glidein-pilot-test.ini
-fi
+#if [ "$1" = "0" ] ; then
+#    unlink %{_sysconfdir}/glideinwms/glidein-pilot.ini
+#    rm -rf %{_sysconfdir}/glideinwms/glidein-pilot-test.ini
+#fi
 
 
 ###############################################################################
@@ -292,11 +292,16 @@ fi
 %defattr(-,root,root,-)
 %attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-one.ini
 
-%files test
-%defattr(-,root,root,-)
-%attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-test.ini
+#%files test
+#%defattr(-,root,root,-)
+#%attr(755,root,root) %{_sysconfdir}/glideinwms/glidein-pilot-test.ini
 
 %changelog
+* Thu Aug 11 2016 Parag Mhashilkar <parag@fnal.gov> 2-1
+- Add support for Google Compute Engine
+- Changed the format of userdata. Works with GlideinWMS v3.3+
+- Unified the config attribute names used across different cloud types
+
 * Thu Jun 09 2016 Parag Mhashilkar <parag@fnal.gov> 1.0.10-1
 - Bug Fix: Correctly extract proxy as last element
 - Add a new file check-preempt-wrap.sh in glideinwms-vm-ec2 package under /usr/libexec/glideinwms/PRE/ directory
