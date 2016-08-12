@@ -5,4 +5,4 @@ glideinwms-pilot
 glidein-pilot-ec2.ini
 glidein-pilot-nimbus.ini
 glidein-pilot-one.ini
-glidein-pilot-test.ini
+glidein-pilot-gce.ini
