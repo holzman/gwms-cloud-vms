@@ -51,7 +51,7 @@ class MetadataManager(object):
 
 
     def retrieve_instance_userdata(self):
-        raise NotImplementedError('Implementation for contextualize_protocol %s not available' % self.contextualization_type)
+        raise NotImplementedError('Implementation for contextualize_protocol %s not available' % self.config.contextualization_type)
 
 
 class EC2MetadataManager(MetadataManager):
@@ -69,7 +69,7 @@ class EC2MetadataManager(MetadataManager):
             response = urllib2.urlopen(request)
             userdata = response.read()
         except Exception, ex:
-            raise UserDataError("Error retrieving instance userdata contextualize_protocol %s: %s\n" % (self.contextualization_type, str(ex)))
+            raise UserDataError("Error retrieving instance userdata contextualize_protocol %s: %s\n" % (self.config.contextualization_type, str(ex)))
         return userdata
 
 
@@ -94,7 +94,7 @@ class OneMetadataManager(MetadataManager):
             umount_cmd = ["umount", "/mnt"]
             subprocess.call(umount_cmd)
         except Exception, ex:
-            raise UserDataError("Error retrieving instance userdata contextualize_protocol %s: %s\n" % (self.contextualization_type, str(ex)))
+            raise UserDataError("Error retrieving instance userdata contextualize_protocol %s: %s\n" % (self.config.contextualization_type, str(ex)))
         return userdata
 
 
@@ -150,23 +150,24 @@ class GCEMetadataManager(MetadataManager):
     def retrieve_instance_userdata(self):
         self.config.log.log_info('Retrieving instance_userdata for contextualize_protocol %s' % self.config.contextualization_type)
         try:
-            metadata_url = self.config.metadata_url
+            userdata_base_url = self.config.instance_userdata_url
             # touch the file so that it exists with proper permissions
             vm_utils.touch(self.config.userdata_file, mode=0600)
             # Now retrieve userdata 
             userdata = {}
             for attribute in self.userdata_attributes:
-                request = urllib2.Request('%s/%s' % (metadata_url, attribute),
+                request = urllib2.Request('%s/%s' % (userdata_base_url, attribute),
                                           None, {'Metadata-Flavor': 'Google'})
                 response = urllib2.urlopen(request)
                 userdata[attribute] = response.read()
         except Exception, ex:
-            raise UserDataError("Error retrieving instance userdata contextualize_protocol %s: %s\n" % (self.contextualization_type, str(ex)))
+            raise UserDataError("Error retrieving instance userdata contextualize_protocol %s: %s\n" % (self.config.contextualization_type, str(ex)))
         return userdata['glideinwms_metadata'] + userdata['glidein_credentials']
 
 
 class GlideinWMSUserData:
     def __init__(self, config):
+        self.config = config
         md_manager = get_metadata_manager(config)
         md_manager.write_userdata_file()
         self.template = "GlideinWMSUserData :: %s"
@@ -203,7 +204,7 @@ class GlideinWMSUserData:
                 ini = ini_handler.Ini(self.config.ini_file)
 
                 # get the initial set of arguments for the glidein_startup.sh script
-                log_msg = "Extracting arguments from the EC2_USER_DATA"
+                log_msg = "Extracting arguments from the USERDATA"
                 self.config.log.log_info(self.template % log_msg)
                 self.config.pilot_args = ini.get("glidein_startup", "args")
                 log_msg = "pilot_args : %s" % self.config.pilot_args
@@ -256,7 +257,7 @@ class GlideinWMSUserData:
                 # the flexibility to append custom info after the second
                 # token, i.e the extra args token
                
-                log_msg = "Extracting pilot proxy: from the EC2_USER_DATA"
+                log_msg = "Extracting pilot proxy: from the USERDATA"
                 self.config.log.log_info(self.template % log_msg)
                 compressed_proxy = base64.b64decode(userdata[-1])
                 fd = os.open("%s.gz" % self.config.proxy_file,
@@ -320,6 +321,6 @@ def get_metadata_manager(config):
 
     context = config.contextualization_type
     metadata_manager_class = '%sMetadataManager' % context
-    if not (config_class in globals()):
+    if not (metadata_manager_class in globals()):
         raise NotImplementedError('Implementation for %s not available' % context)
     return (globals()[metadata_manager_class])(config)

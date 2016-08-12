@@ -27,7 +27,7 @@ CONTEXTS = {
 }
 
 def is_context_valid(context):
-    return (context.upper() in CONTEXT_TYPES)
+    return (context.upper() in CONTEXTS)
 
 
 def valid_contexts():

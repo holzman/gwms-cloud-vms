@@ -21,7 +21,7 @@ from glideinwms_pilot.vm_utils import sleep
 
 from glideinwms_pilot.user_data import GlideinWMSUserData
 
-from glideinwms_pilot.config import Config
+from glideinwms_pilot.config import get_config
 
 from glideinwms_pilot.process_handling import execute_cmd
 
@@ -110,7 +110,7 @@ def main():
 
     # If config fails, we need to write error to console if available
     try:
-        config = Config(options.config_file)
+        config = get_config(options.config_file)
         config.setup()
         try:
             # Change to the working directory -- GUARANTEE A KNOWN start dir
@@ -140,10 +140,12 @@ def main():
 
             # Change the ownership of files in ~glidein_pilot before 
             # dropping privileges
+            config.log.log_info("Updating ownership of user data")
             chown('%s.%s' % (config.glidein_user, config.glidein_user),
                   config.home_dir)
-            chown('%s.%s' % (config.glidein_user, config.glidein_user),
-                  config.scratch_dir)
+            if os.path.exists(config.scratch_dir):
+                chown('%s.%s' % (config.glidein_user, config.glidein_user),
+                      config.scratch_dir)
             # drop privileges to the glidein user
             config.log.log_info("Dropping privs to %s" % config.glidein_user)
             drop_privs(config.glidein_user)

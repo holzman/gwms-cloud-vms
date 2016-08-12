@@ -10,6 +10,7 @@ from simple_logging import ConsoleWriter
 
 from contextualization_types import CONTEXTS
 from contextualization_types import is_context_valid
+from contextualization_types import valid_contexts
 
 class Config(object):
     """
@@ -62,7 +63,7 @@ class Config(object):
     def validate_contextualization(self):
         self.log.log_info("Contextualization Type identified as: %s" % self.contextualization_type)
         if not is_context_valid(self.contextualization_type):
-            raise ConfigError("context_type %s not in the supported list %s" % (self.contextualization_type, valid_contexts())
+            raise ConfigError("context_type %s not in the supported list %s" % (self.contextualization_type, valid_contexts()))
 
 
     def setup_contextualization(self):
@@ -186,7 +187,7 @@ class GCEConfig(EC2Config):
 # Assumes certain class naming conventions
 ###############################################################################
 
-get_config(config_ini='/etc/glideinwms/glidein-pilot.ini'):
+def get_config(config_ini='/etc/glideinwms/glidein-pilot.ini'):
     """
     Do a minimal read of the config to identify context type and create
     config object for appropriate context
@@ -196,11 +197,11 @@ get_config(config_ini='/etc/glideinwms/glidein-pilot.ini'):
         raise ConfigError("%s does not exist" % config_ini)
 
     ini = ini_handler.Ini(config_ini)
-    context_type = self.ini.get("DEFAULT", "context_type")
+    context_type = ini.get("DEFAULT", "contextualize_protocol")
 
     context = CONTEXTS.get(context_type)
     if context is None:
-        raise ConfigError("context_type %s not in the supported list %s" % (context_type, valid_contexts())
+        raise ConfigError("context_type %s not in the supported list %s" % (context_type, valid_contexts()))
     config_class = '%sConfig' % context
     if not (config_class in globals()):
         raise NotImplementedError('Implementation for %s not available' % context)
