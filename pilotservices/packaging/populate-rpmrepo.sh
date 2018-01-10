@@ -30,7 +30,7 @@ archlist='x86_64'
 
 # Create repo for dev (developers) and one for production (operations)
 #flavors='release development'
-flavors='development'
+flavors=${1:-'development'}
 
 #make changes where appropiate (eg: scp new rpms)
 for flavor in $flavors; do
